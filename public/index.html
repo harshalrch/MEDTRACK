@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MedTrack — Smart Medicine Management</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;600;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh;
+      background: linear-gradient(160deg, var(--navy) 0%, var(--navy-mid) 60%, #0a2e28 100%);
+      display: flex; align-items: center; padding: 100px 5% 60px;
+      position: relative; overflow: hidden;
+    }
+    .hero-grid-bg {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image: linear-gradient(rgba(14,154,138,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(14,154,138,0.06) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+    .hero-blob { position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; }
+    .blob-1 { width: 500px; height: 500px; top: -100px; right: -100px; background: radial-gradient(circle, rgba(14,154,138,0.18), transparent 70%); }
+    .blob-2 { width: 350px; height: 350px; bottom: 0; left: -80px; background: radial-gradient(circle, rgba(240,165,0,0.12), transparent 70%); }
+    .hero-content { max-width: 580px; position: relative; z-index: 2; animation: fadeUp 0.8s ease both; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(14,154,138,0.15); border: 1px solid rgba(14,154,138,0.4);
+      color: var(--teal-light); border-radius: 100px; padding: 6px 16px;
+      font-size: 0.82rem; font-weight: 500; margin-bottom: 24px; letter-spacing: 0.5px;
+    }
+    .hero-badge::before { content: "●"; font-size: 0.5rem; animation: pulse 2s infinite; }
+    h1 { font-family: 'Fraunces', serif; font-size: clamp(2.8rem,5.5vw,4.2rem); font-weight: 900; line-height: 1.08; color: var(--white); margin-bottom: 24px; letter-spacing: -1.5px; }
+    h1 em { color: var(--teal-light); font-style: normal; }
+    .hero-desc { font-size: 1.1rem; color: rgba(255,255,255,0.65); line-height: 1.75; margin-bottom: 40px; max-width: 480px; }
+    .hero-btns { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 48px; }
+    .hero-emergency-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--coral); color: white; padding: 14px 28px; border-radius: 12px;
+      font-size: 1rem; font-weight: 700; text-decoration: none; border: none; cursor: pointer;
+      animation: pulse-red 2s infinite; transition: all 0.2s;
+    }
+    .hero-emergency-btn:hover { background: #c44; transform: translateY(-1px); }
+    .hero-stats { display: flex; gap: 40px; flex-wrap: wrap; }
+    .stat-item { text-align: left; }
+    .stat-num { font-family: 'Fraunces', serif; font-size: 2.2rem; font-weight: 900; color: var(--white); line-height: 1; }
+    .stat-label { font-size: 0.82rem; color: rgba(255,255,255,0.5); margin-top: 4px; }
+    .hero-visual { flex: 1; display: flex; flex-direction: column; gap: 16px; max-width: 380px; margin-left: auto; position: relative; z-index: 2; animation: fadeUp 0.8s 0.2s ease both; }
+    .dashboard-card { background: rgba(255,255,255,0.06); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 20px; }
+    .dash-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .dash-card-title { font-size: 0.88rem; font-weight: 600; color: rgba(255,255,255,0.9); }
+    .dash-badge { font-size: 0.72rem; font-weight: 600; padding: 3px 10px; border-radius: 100px; }
+    .badge-green { background: rgba(22,163,74,0.2); color: #4ade80; }
+    .badge-red { background: rgba(220,38,38,0.2); color: #f87171; }
+    .med-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .med-row:last-child { border-bottom: none; }
+    .med-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+    .icon-teal { background: rgba(14,154,138,0.2); }
+    .icon-amber { background: rgba(240,165,0,0.2); }
+    .icon-blue { background: rgba(59,130,246,0.2); }
+    .med-info { flex: 1; }
+    .med-name { font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.9); }
+    .med-time { font-size: 0.75rem; color: rgba(255,255,255,0.45); }
+    .med-status { font-size: 0.72rem; font-weight: 600; padding: 3px 10px; border-radius: 100px; white-space: nowrap; }
+    .status-taken { background: rgba(22,163,74,0.2); color: #4ade80; }
+    .status-due { background: rgba(240,165,0,0.2); color: var(--amber-light); }
+    .warn-row { display: flex; gap: 12px; align-items: flex-start; }
+    .warn-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .warn-text { font-size: 0.82rem; color: rgba(255,255,255,0.75); line-height: 1.5; }
+    .warn-text strong { display: block; color: #fcd34d; margin-bottom: 2px; }
+
+    /* ── SECTIONS ── */
+    section { padding: 100px 5%; }
+    #users { background: var(--section-alt); }
+    .users-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .user-card { background: var(--white); border-radius: 16px; padding: 28px; border: 1px solid var(--border); position: relative; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; }
+    .user-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(14,154,138,0.12); }
+    .user-card-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--teal), var(--teal-light)); }
+    .user-card.secondary .user-card-accent { background: linear-gradient(90deg, var(--amber), var(--amber-light)); }
+    .user-emoji { font-size: 2rem; margin-bottom: 12px; display: block; }
+    .user-card h3 { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+    .user-card p { font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px; }
+    .user-type-tag { font-size: 0.72rem; font-weight: 700; padding: 4px 12px; border-radius: 100px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .tag-primary { background: rgba(14,154,138,0.1); color: var(--teal); border: 1px solid rgba(14,154,138,0.25); }
+    .tag-secondary { background: rgba(240,165,0,0.1); color: var(--amber); border: 1px solid rgba(240,165,0,0.25); }
+
+    #features { background: var(--white); }
+    .features-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; margin-bottom: 48px; }
+    .features-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; grid-template-rows: auto auto; gap: 24px; }
+    .feature-card { background: var(--section-alt); border-radius: 16px; padding: 28px; border: 1px solid var(--border); transition: all 0.2s; }
+    .feature-card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(14,154,138,0.1); }
+    .feature-card.featured { grid-row: span 2; background: linear-gradient(135deg, var(--navy), var(--navy-mid)); color: white; }
+    .feature-icon-wrap { font-size: 1.8rem; margin-bottom: 16px; }
+    .feature-card h3 { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
+    .feature-card.featured h3 { color: white; }
+    .feature-card p { font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; }
+    .feature-card.featured p { color: rgba(255,255,255,0.65); }
+    .feature-detail { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .feature-pill { background: rgba(14,154,138,0.15); color: var(--teal-light); border-radius: 100px; padding: 4px 12px; font-size: 0.75rem; font-weight: 600; }
+
+    #how { background: var(--section-alt); text-align: center; }
+    .steps { display: grid; grid-template-columns: repeat(4,1fr); gap: 32px; margin-top: 48px; }
+    .step { position: relative; }
+    .step::after { content: '→'; position: absolute; right: -20px; top: 20px; font-size: 1.5rem; color: var(--teal-light); opacity: 0.5; }
+    .step:last-child::after { display: none; }
+    .step-num { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--teal), var(--teal-dark)); color: white; font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 900; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+    .step h3 { font-family: 'Fraunces', serif; font-size: 1.05rem; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+    .step p { font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; }
+
+    /* Emergency CTA section */
+    #emergency-cta {
+      background: linear-gradient(135deg, #1a0a0a, #2d0f0f);
+      text-align: center; padding: 80px 5%;
+    }
+    .emergency-cta-content { max-width: 600px; margin: 0 auto; }
+    .emergency-cta-content h2 { color: white; }
+    .emergency-cta-content p { color: rgba(255,255,255,0.65); margin-bottom: 32px; }
+    .sos-btn {
+      display: inline-flex; align-items: center; gap: 12px;
+      background: var(--coral); color: white; padding: 20px 48px; border-radius: 16px;
+      font-size: 1.2rem; font-weight: 800; text-decoration: none;
+      animation: pulse-red 2s infinite; transition: all 0.2s; letter-spacing: 0.5px;
+    }
+    .sos-btn:hover { background: #c44; transform: scale(1.02); }
+    .sos-icon { font-size: 1.5rem; }
+
+    /* ── SIGN UP ── */
+    #signup { background: var(--white); }
+    .signup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start; }
+    .signup-info p { font-size: 1rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 24px; }
+    .benefits-list { list-style: none; }
+    .benefits-list li { display: flex; gap: 10px; margin-bottom: 12px; font-size: 0.92rem; color: var(--text-main); }
+    .benefits-list li::before { content: "✓"; color: var(--teal); font-weight: 700; flex-shrink: 0; }
+
+    @media (max-width: 900px) {
+      .users-grid, .features-grid, .steps { grid-template-columns: 1fr 1fr; }
+      .signup-grid { grid-template-columns: 1fr; }
+      .hero-visual { display: none; }
+      .features-grid { grid-template-columns: 1fr; }
+      .feature-card.featured { grid-row: span 1; }
+    }
+  </style>
+</head>
+<body>
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="/"><div class="logo-icon">💊</div>Med<span>Track</span></a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#users">Who It's For</a></li>
+      <li><a href="#how">How It Works</a></li>
+      <li><a href="/emergency" class="nav-emergency">🚨 Emergency</a></li>
+      <li><a href="/login">Sign In</a></li>
+      <li><a href="/register" class="nav-cta">Get Started</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero-grid-bg"></div>
+    <div class="hero-blob blob-1"></div>
+    <div class="hero-blob blob-2"></div>
+    <div class="hero-content">
+      <div class="hero-badge">Smart Medicine Management Platform</div>
+      <h1>Never Miss a <em>Dose</em> Again.</h1>
+      <p class="hero-desc">MedTrack is a centralized digital platform that helps patients manage prescriptions, receive timely reminders, and stay safe with real-time drug interaction alerts.</p>
+      <div class="hero-btns">
+        <a href="/register" class="btn-primary">Start for Free →</a>
+        <a href="/login" class="btn-secondary">Sign In</a>
+        <a href="/emergency" class="hero-emergency-btn">🚨 Emergency</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item"><div class="stat-num">98%</div><div class="stat-label">Adherence rate</div></div>
+        <div class="stat-item"><div class="stat-num">10K+</div><div class="stat-label">Drug interactions tracked</div></div>
+        <div class="stat-item"><div class="stat-num">24/7</div><div class="stat-label">Reminder system</div></div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="dashboard-card">
+        <div class="dash-card-header"><span class="dash-card-title">Today's Medications</span><span class="dash-badge badge-green">3 of 4 taken</span></div>
+        <div class="med-row"><div class="med-icon icon-teal">💊</div><div class="med-info"><div class="med-name">Metformin 500mg</div><div class="med-time">8:00 AM · With breakfast</div></div><span class="med-status status-taken">✓ Taken</span></div>
+        <div class="med-row"><div class="med-icon icon-amber">🩺</div><div class="med-info"><div class="med-name">Amlodipine 5mg</div><div class="med-time">2:00 PM · Due soon</div></div><span class="med-status status-due">⏳ Due</span></div>
+        <div class="med-row"><div class="med-icon icon-blue">💉</div><div class="med-info"><div class="med-name">Aspirin 75mg</div><div class="med-time">9:00 PM · Tonight</div></div><span class="med-status status-due">⏳ Later</span></div>
+      </div>
+      <div class="dashboard-card">
+        <div class="dash-card-header"><span class="dash-card-title">Interaction Check</span><span class="dash-badge badge-red">1 Warning</span></div>
+        <div class="warn-row"><span class="warn-icon">⚠️</span><div class="warn-text"><strong>Moderate Interaction</strong>Warfarin + Aspirin may increase bleeding risk.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHO IT'S FOR -->
+  <section id="users">
+    <div style="text-align:center">
+      <div class="section-label">Target Users</div>
+      <h2>Built for People Who Need It Most</h2>
+      <p class="section-intro" style="margin:0 auto 48px">From elderly patients managing complex regimens to doctors monitoring their patients — MedTrack is designed around real needs.</p>
+    </div>
+    <div class="users-grid">
+      <div class="user-card"><div class="user-card-accent"></div><span class="user-emoji">👴</span><h3>Elderly Patients</h3><p>65+ patients with multiple medications who need simple, clear reminders and accessible design.</p><span class="user-type-tag tag-primary">Primary User</span></div>
+      <div class="user-card"><div class="user-card-accent"></div><span class="user-emoji">🩺</span><h3>Chronically Ill</h3><p>Diabetes, hypertension, and other long-term conditions requiring strict daily medication schedules.</p><span class="user-type-tag tag-primary">Primary User</span></div>
+      <div class="user-card"><div class="user-card-accent"></div><span class="user-emoji">🏥</span><h3>Post-Surgery Recovery</h3><p>Patients on short-term complex regimens post-operation who need structured tracking.</p><span class="user-type-tag tag-primary">Primary User</span></div>
+      <div class="user-card secondary"><div class="user-card-accent"></div><span class="user-emoji">👨‍👩‍👧</span><h3>Caregivers & Family</h3><p>Family members who remotely monitor and ensure their loved ones are adhering to prescriptions.</p><span class="user-type-tag tag-secondary">Support User</span></div>
+      <div class="user-card secondary"><div class="user-card-accent"></div><span class="user-emoji">👨‍⚕️</span><h3>Doctors & Pharmacists</h3><p>Healthcare professionals who prescribe, verify medication regimens, and monitor patient adherence.</p><span class="user-type-tag tag-secondary">Support User</span></div>
+      <div class="user-card secondary"><div class="user-card-accent"></div><span class="user-emoji">💊</span><h3>Polypharmacy Patients</h3><p>Patients taking 5+ concurrent medications who are at high risk of dangerous interactions.</p><span class="user-type-tag tag-secondary">Support User</span></div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="features-header">
+      <div><div class="section-label">Core Features</div><h2>Everything You Need<br/>in One Platform</h2></div>
+      <p class="section-intro" style="margin-bottom:0">A comprehensive suite of tools designed to make medication management safe, simple, and effective.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card featured">
+        <div class="feature-icon-wrap">⏰</div>
+        <h3>Smart Reminder System</h3>
+        <p>Personalized, multi-channel alerts ensure patients never miss a dose. Set custom schedules based on meal times, conditions, and preferences.</p>
+        <div class="feature-detail"><span class="feature-pill">⚡ Real-time alerts</span><span class="feature-pill">📱 Multi-device</span><span class="feature-pill">🗓 Flexible schedules</span></div>
+      </div>
+      <div class="feature-card"><div class="feature-icon-wrap">⚠️</div><h3>Drug Interaction Checker</h3><p>Instant alerts about unsafe drug combinations from a comprehensive medical database.</p></div>
+      <div class="feature-card"><div class="feature-icon-wrap">📋</div><h3>Prescription Manager</h3><p>Digitally store and organize all prescriptions. Track doses, frequencies, and refill dates.</p></div>
+      <div class="feature-card"><div class="feature-icon-wrap">📊</div><h3>Centralized Dashboard</h3><p>A single view of all medications, upcoming doses, adherence trends, and health summaries.</p></div>
+      <div class="feature-card"><div class="feature-icon-wrap">🚨</div><h3>Emergency SOS</h3><p>One-tap emergency button connects you instantly with hospitals for ambulance dispatch with GPS location.</p></div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="section-label">How It Works</div>
+    <h2>Up and Running in Minutes</h2>
+    <p class="section-intro" style="margin:0 auto 0">Four simple steps to transform how you manage your medications.</p>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><h3>Create Account</h3><p>Register securely with validated form. Choose your role — patient, caregiver, or doctor.</p></div>
+      <div class="step"><div class="step-num">2</div><h3>Add Prescriptions</h3><p>Enter your medications, dosages, and schedules. Upload or manually input from your doctor's notes.</p></div>
+      <div class="step"><div class="step-num">3</div><h3>Set Reminders</h3><p>Customize alerts for each medication. Choose timing, frequency, and notification method.</p></div>
+      <div class="step"><div class="step-num">4</div><h3>Stay Safe</h3><p>Track intake daily, get interaction warnings, and share reports with your healthcare provider.</p></div>
+    </div>
+  </section>
+
+  <!-- EMERGENCY CTA -->
+  <section id="emergency-cta">
+    <div class="emergency-cta-content">
+      <div class="section-label" style="background:rgba(224,92,92,0.15);color:#f87171;border-color:rgba(224,92,92,0.3)">Emergency Services</div>
+      <h2>Need Immediate Help?</h2>
+      <p>In a medical emergency, every second counts. MedTrack connects you directly with nearby hospitals and dispatches an ambulance to your location instantly.</p>
+      <a href="/emergency" class="sos-btn"><span class="sos-icon">🚨</span> EMERGENCY SOS</a>
+    </div>
+  </section>
+
+  <!-- SIGN UP -->
+  <section id="signup">
+    <div class="signup-grid">
+      <div class="signup-info">
+        <div class="section-label">Get Started</div>
+        <h2>Join MedTrack Today</h2>
+        <p>MedTrack is completely free for patients and caregivers. Create your account in under two minutes.</p>
+        <ul class="benefits-list">
+          <li>Personalized medication schedules with smart reminders</li>
+          <li>Real-time drug interaction safety checker</li>
+          <li>Centralized dashboard accessible on any device</li>
+          <li>Secure, encrypted health data — only you control access</li>
+          <li>Accessible UI designed for elderly and chronically ill users</li>
+          <li>Emergency SOS with direct hospital ambulance dispatch</li>
+        </ul>
+      </div>
+      <div>
+        <div class="form-card">
+          <div class="form-title">Quick Register</div>
+          <div class="form-subtitle">Takes less than 2 minutes</div>
+          <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:20px">Create your full account with all details on the <a href="/register" style="color:var(--teal);font-weight:600">registration page</a>.</p>
+          <a href="/register" class="btn-submit" style="display:block;text-align:center;text-decoration:none">Create My Account →</a>
+          <p class="form-login">Already have an account? <a href="/login">Sign in here</a></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a class="nav-logo" href="/" style="font-size:1.3rem"><div class="logo-icon" style="width:30px;height:30px;font-size:0.9rem">💊</div>Med<span>Track</span></a>
+        <p>A smart, centralized platform for medication management — making safe, timely, and organized medicine management accessible to everyone.</p>
+      </div>
+      <div class="footer-col"><h4>Platform</h4><ul><li><a href="/dashboard">Dashboard</a></li><li><a href="#">Prescriptions</a></li><li><a href="#">Reminders</a></li><li><a href="#">Interactions</a></li></ul></div>
+      <div class="footer-col"><h4>Users</h4><ul><li><a href="#">Patients</a></li><li><a href="#">Caregivers</a></li><li><a href="#">Doctors</a></li><li><a href="#">Pharmacists</a></li></ul></div>
+      <div class="footer-col"><h4>Support</h4><ul><li><a href="/emergency">Emergency SOS</a></li><li><a href="#">Privacy Policy</a></li><li><a href="#">Terms of Service</a></li><li><a href="#">Contact Us</a></li></ul></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 MedTrack. Smart Medicine Management Platform.</p><p style="color:rgba(255,255,255,0.3)">Healthcare & Medical Services</p></div>
+  </footer>
+</body>
+</html>

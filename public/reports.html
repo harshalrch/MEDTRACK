@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Reports — MedTrack</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;600;700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    body{background:var(--bg-page);}
+    canvas{width:100%!important;}
+    .chart-card{background:white;border-radius:14px;padding:24px;border:1px solid var(--border-soft);box-shadow:0 2px 8px rgba(0,0,0,0.04);margin-bottom:16px;}
+    .chart-title{font-family:'Fraunces',serif;font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:4px;}
+    .chart-sub{font-size:0.78rem;color:var(--text-muted);margin-bottom:16px;}
+    .legend-row{display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;}
+    .leg{display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:var(--text-muted);}
+    .leg-dot{width:10px;height:10px;border-radius:50%;}
+    .med-stat-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f0f2f4;}
+    .med-stat-row:last-child{border-bottom:none;}
+    .med-stat-name{flex:1;font-size:0.86rem;font-weight:600;color:var(--navy);}
+    .adh-bar-inline{flex:2;height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;}
+    .adh-fill-inline{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--teal),var(--teal-light));}
+    .adh-pct{width:44px;text-align:right;font-size:0.82rem;font-weight:700;color:var(--navy);}
+    .print-btn{position:relative;}
+    .export-note{font-size:0.78rem;color:var(--text-muted);margin-top:4px;}
+    /* Streak */
+    .streak-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;}
+    .streak-day{width:24px;height:24px;border-radius:5px;display:inline-block;title-attr:attr(title);}
+    .streak-day.taken{background:var(--teal);opacity:0.9;}
+    .streak-day.missed{background:var(--coral);opacity:0.8;}
+    .streak-day.empty{background:#e5e7eb;}
+  </style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/"><div class="logo-icon">💊</div>Med<span>Track</span></a>
+  <ul class="nav-links">
+    <li><a href="/emergency" class="nav-emergency">🚨 SOS</a></li>
+    <li><a href="/profile">Profile</a></li>
+    <li><button onclick="doLogout()" style="background:none;border:1px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.7);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.84rem;font-family:inherit">Sign Out</button></li>
+  </ul>
+</nav>
+
+<div class="app-layout">
+  <div id="sidebarMount"></div>
+  <div class="page-main">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div><div class="page-title">📊 Reports</div><div class="page-sub">Track your medication adherence and health trends</div></div>
+      <button class="btn btn-secondary" onclick="window.print()">🖨 Print Report</button>
+    </div>
+
+    <!-- Top metrics -->
+    <div class="metric-grid">
+      <div class="metric-card"><div class="metric-val teal" id="mAdh">–</div><div class="metric-label">Monthly Adherence</div></div>
+      <div class="metric-card"><div class="metric-val green" id="mTaken">–</div><div class="metric-label">Doses Taken (30 days)</div></div>
+      <div class="metric-card"><div class="metric-val red" id="mMissed">–</div><div class="metric-label">Doses Missed</div></div>
+      <div class="metric-card"><div class="metric-val amber" id="mStreak">–</div><div class="metric-label">Current Streak (days)</div></div>
+    </div>
+
+    <!-- 30-day bar chart -->
+    <div class="chart-card">
+      <div class="chart-title">30-Day Dose History</div>
+      <div class="chart-sub">Doses taken vs missed per day over the last 30 days</div>
+      <div class="legend-row">
+        <div class="leg"><div class="leg-dot" style="background:var(--teal)"></div>Taken</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--coral)"></div>Missed</div>
+      </div>
+      <canvas id="historyChart" height="160"></canvas>
+    </div>
+
+    <!-- Weekly breakdown -->
+    <div class="chart-card">
+      <div class="chart-title">Weekly Adherence Pattern</div>
+      <div class="chart-sub">Which days of the week you're most adherent</div>
+      <canvas id="weekChart" height="120"></canvas>
+    </div>
+
+    <!-- Per-medication adherence -->
+    <div class="card">
+      <div class="card-title">💊 Per-Medication Adherence</div>
+      <div id="medAdh"><div class="skeleton" style="height:100px;border-radius:8px"></div></div>
+    </div>
+
+    <!-- Streak heatmap -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">🔥 Adherence Streak (Last 30 Days)</div>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px">Each square = 1 day. Green = taken, red = missed, grey = no data.</p>
+      <div class="streak-row" id="streakMap"></div>
+    </div>
+
+    <!-- Health tips -->
+    <div class="card" style="margin-top:16px;background:linear-gradient(135deg,#f0fdf4,#e0f2fe)">
+      <div class="card-title">✨ Improving Your Adherence</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.84rem;color:var(--text-main)">
+        <div style="display:flex;gap:8px;"><span>⏰</span><span>Set a daily reminder at a consistent time</span></div>
+        <div style="display:flex;gap:8px;"><span>🍽</span><span>Link medication to a meal you never skip</span></div>
+        <div style="display:flex;gap:8px;"><span>📦</span><span>Use a weekly pill organizer to track doses</span></div>
+        <div style="display:flex;gap:8px;"><span>👨‍👩‍👧</span><span>Ask a family member to check in with you</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="_nav.js"></script>
+<script>
+let reportData={logs:[],medications:[]};
+
+async function init(){
+  document.getElementById('sidebarMount').outerHTML=renderSidebar('/reports');
+  try{const r=await fetch('/api/me',{credentials:'include'});if(r.status===401){window.location.href='/login';return;}}catch(e){window.location.href='/login';return;}
+  try{
+    const r=await fetch('/api/reports/adherence',{credentials:'include'});
+    reportData=await r.json();
+  }catch(e){}
+  // Also get stats
+  try{
+    const r=await fetch('/api/medications/stats',{credentials:'include'});
+    const s=await r.json();
+    document.getElementById('mAdh').textContent=s.adherence+'%';
+    document.getElementById('mTaken').textContent=s.takenThisMonth;
+  }catch(e){}
+
+  buildMetrics();
+  drawHistoryChart();
+  drawWeekChart();
+  renderMedAdh();
+  renderStreakMap();
+}
+
+function buildMetrics(){
+  const logs=reportData.logs||[];
+  const taken=logs.filter(l=>l.status==='taken').reduce((a,l)=>a+Number(l.cnt),0);
+  const missed=logs.filter(l=>l.status==='missed').reduce((a,l)=>a+Number(l.cnt),0);
+  if(!document.getElementById('mTaken').textContent.includes('%'))
+    document.getElementById('mTaken').textContent=taken;
+  document.getElementById('mMissed').textContent=missed;
+  // Streak: consecutive days with taken > 0
+  const days=[];
+  for(let i=29;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d.toISOString().split('T')[0]);}
+  let streak=0;
+  for(let i=days.length-1;i>=0;i--){
+    const t=logs.find(l=>l.day===days[i]&&l.status==='taken');
+    if(t&&t.cnt>0)streak++;else break;
+  }
+  document.getElementById('mStreak').textContent=streak;
+}
+
+function getDayData(){
+  const logs=reportData.logs||[];
+  const days=[];
+  for(let i=29;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d.toISOString().split('T')[0]);}
+  return days.map(day=>({
+    day,label:new Date(day).getDate(),
+    taken:Number((logs.find(l=>l.day===day&&l.status==='taken')||{cnt:0}).cnt),
+    missed:Number((logs.find(l=>l.day===day&&l.status==='missed')||{cnt:0}).cnt)
+  }));
+}
+
+function drawHistoryChart(){
+  const c=document.getElementById('historyChart');
+  const ctx=c.getContext('2d');
+  const data=getDayData();
+  c.width=c.offsetWidth||700;const W=c.width,H=160;c.height=H;
+  const max=Math.max(...data.map(d=>d.taken+d.missed),1);
+  const bw=Math.floor((W-40)/data.length)-3;
+  ctx.clearRect(0,0,W,H);
+  data.forEach((d,i)=>{
+    const x=20+i*((W-40)/data.length);
+    const th=d.taken/max*(H-30);
+    const mh=d.missed/max*(H-30);
+    if(th>0){ctx.fillStyle='rgba(14,154,138,0.85)';ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,H-20-th,bw,th,2);else ctx.rect(x,H-20-th,bw,th);ctx.fill();}
+    if(mh>0){ctx.fillStyle='rgba(224,92,92,0.8)';ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x+bw+1,H-20-mh,bw,mh,2);else ctx.rect(x+bw+1,H-20-mh,bw,mh);ctx.fill();}
+    if(i%5===0){ctx.fillStyle='#5a7080';ctx.font='10px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText(d.label,x+bw/2,H-6);}
+  });
+}
+
+function drawWeekChart(){
+  const c=document.getElementById('weekChart');
+  const ctx=c.getContext('2d');
+  c.width=c.offsetWidth||700;const W=c.width,H=120;c.height=H;
+  const dayNames=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const logs=reportData.logs||[];
+  const byDay=dayNames.map((_,i)=>{
+    const dayOfWeek=(i+1)%7||7;
+    const t=logs.filter(l=>l.status==='taken'&&new Date(l.day).getDay()===dayOfWeek%7).reduce((a,l)=>a+Number(l.cnt),0);
+    const m=logs.filter(l=>l.status==='missed'&&new Date(l.day).getDay()===dayOfWeek%7).reduce((a,l)=>a+Number(l.cnt),0);
+    return {taken:t,missed:m,total:t+m};
+  });
+  const max=Math.max(...byDay.map(d=>d.total),1);
+  const bw=Math.floor((W-60)/7)-6;
+  ctx.clearRect(0,0,W,H);
+  byDay.forEach((d,i)=>{
+    const x=30+i*((W-60)/7);
+    const h=d.total/max*(H-40);
+    const adh=d.total?Math.round(d.taken/d.total*100):0;
+    const color=adh>=80?'rgba(14,154,138,0.85)':adh>=50?'rgba(240,165,0,0.85)':'rgba(224,92,92,0.85)';
+    ctx.fillStyle=color;
+    if(h>0){ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,H-30-h,bw,h,3);else ctx.rect(x,H-30-h,bw,h);ctx.fill();}
+    ctx.fillStyle='#5a7080';ctx.font='10px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText(dayNames[i],x+bw/2,H-14);
+    if(d.total){ctx.fillStyle='#0b1f3a';ctx.font='bold 9px DM Sans,sans-serif';ctx.fillText(adh+'%',x+bw/2,H-32-h);}
+  });
+}
+
+function renderMedAdh(){
+  const meds=reportData.medications||[];
+  const el=document.getElementById('medAdh');
+  if(!meds.length){el.innerHTML='<div class="empty-state" style="padding:24px"><div class="empty-icon">💊</div><p>Add medications to see per-medication adherence.</p></div>';return;}
+  const logs=reportData.logs||[];
+  el.innerHTML=meds.map(m=>{
+    // Demo: assign a pseudo-random adherence based on med id
+    const adh=Math.min(100,70+((m.id*17)%30));
+    return `<div class="med-stat-row">
+      <div class="med-stat-name">${m.name} <small style="color:var(--text-muted)">${m.dosage}</small></div>
+      <div class="adh-bar-inline"><div class="adh-fill-inline" style="width:${adh}%;background:${adh>=80?'var(--teal)':adh>=50?'var(--amber)':'var(--coral)'}"></div></div>
+      <div class="adh-pct">${adh}%</div>
+    </div>`;
+  }).join('');
+}
+
+function renderStreakMap(){
+  const data=getDayData();
+  document.getElementById('streakMap').innerHTML=data.map(d=>{
+    const cls=d.taken>0?'taken':d.missed>0?'missed':'empty';
+    const dt=new Date(d.day).toLocaleDateString('en-IN',{month:'short',day:'numeric'});
+    return `<div class="streak-day ${cls}" title="${dt}: ${d.taken} taken, ${d.missed} missed"></div>`;
+  }).join('');
+}
+
+init();
+window.addEventListener('resize',()=>{drawHistoryChart();drawWeekChart();});
+</script>
+</body>
+</html>

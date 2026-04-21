@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Reminders — MedTrack</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;600;700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    body{background:var(--bg-page);}
+    .rem-list{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+    .rem-item{background:white;border-radius:12px;border:1px solid var(--border-soft);padding:16px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 1px 4px rgba(0,0,0,0.04);transition:box-shadow 0.2s;}
+    .rem-item:hover{box-shadow:0 4px 14px rgba(0,0,0,0.08);}
+    .rem-item.inactive{opacity:0.55;}
+    .rem-time-big{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:800;color:var(--navy);width:80px;flex-shrink:0;}
+    .rem-details{flex:1;min-width:0;}
+    .rem-title-big{font-weight:700;font-size:0.95rem;color:var(--navy);margin-bottom:3px;}
+    .rem-meta{font-size:0.78rem;color:var(--text-muted);display:flex;gap:10px;flex-wrap:wrap;}
+    .day-chip{display:inline-block;font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:5px;background:rgba(14,154,138,0.1);color:var(--teal-dark);}
+    .rem-actions{display:flex;align-items:center;gap:8px;}
+    .timeline-section{margin-bottom:24px;}
+    .timeline-hour{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-muted);padding:16px 0 6px;border-bottom:1px solid #e8ecef;margin-bottom:8px;}
+    .tips-card{background:linear-gradient(135deg,#e0f2fe,#f0fdf4);border:1px solid rgba(14,154,138,0.2);border-radius:14px;padding:20px 24px;margin-top:16px;}
+    .tips-card h3{font-family:'Fraunces',serif;font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:10px;}
+    .tip{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;font-size:0.84rem;color:var(--text-main);}
+    .tip-icon{flex-shrink:0;font-size:1rem;}
+  </style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/"><div class="logo-icon">💊</div>Med<span>Track</span></a>
+  <ul class="nav-links">
+    <li><a href="/emergency" class="nav-emergency">🚨 SOS</a></li>
+    <li><a href="/profile">Profile</a></li>
+    <li><button onclick="doLogout()" style="background:none;border:1px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.7);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.84rem;font-family:inherit">Sign Out</button></li>
+  </ul>
+</nav>
+
+<div class="app-layout">
+  <div id="sidebarMount"></div>
+  <div class="page-main">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div><div class="page-title">⏰ Reminders</div><div class="page-sub">Set smart alerts so you never miss a dose</div></div>
+      <button class="btn btn-primary btn-lg" onclick="openModal()">+ New Reminder</button>
+    </div>
+
+    <!-- Metric cards -->
+    <div class="metric-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="metric-card"><div class="metric-val teal" id="mTotal">–</div><div class="metric-label">Total Reminders</div></div>
+      <div class="metric-card"><div class="metric-val green" id="mActive">–</div><div class="metric-label">Active</div></div>
+      <div class="metric-card"><div class="metric-val amber" id="mToday">–</div><div class="metric-label">Firing Today</div></div>
+    </div>
+
+    <!-- Timeline view -->
+    <div class="card">
+      <div class="card-title">📅 Today's Reminder Timeline</div>
+      <div id="timeline"><div class="skeleton" style="height:140px;border-radius:10px;"></div></div>
+    </div>
+
+    <!-- All reminders list -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">All Reminders</div>
+      <div id="remList"><div class="skeleton" style="height:180px;border-radius:10px;"></div></div>
+    </div>
+
+    <!-- Tips -->
+    <div class="tips-card">
+      <h3>💡 Reminder Tips</h3>
+      <div class="tip"><span class="tip-icon">🌅</span><span>Set morning reminders 15 min after waking so you have time to prepare.</span></div>
+      <div class="tip"><span class="tip-icon">🍽</span><span>For medications taken with food, set the reminder at your regular meal times.</span></div>
+      <div class="tip"><span class="tip-icon">🔔</span><span>Enable browser notifications when prompted for reliable alerts.</span></div>
+      <div class="tip"><span class="tip-icon">👨‍👩‍👧</span><span>Caregivers can set reminders on behalf of elderly patients by logging in.</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="remModal">
+  <div class="modal">
+    <div class="modal-title">New Reminder</div>
+    <div class="modal-sub">Set a daily alert for a medication or custom event</div>
+
+    <div class="form-group" id="fg-rtitle"><label>Reminder Title *</label><input id="rTitle" type="text" placeholder="e.g. Take Metformin with breakfast"/><div class="form-error">Required</div></div>
+
+    <div class="form-group"><label>Linked Medication <small style="color:var(--text-muted)">(optional)</small></label>
+      <select id="rMed"><option value="">— None (custom reminder) —</option></select>
+    </div>
+
+    <div class="form-group" id="fg-rtime"><label>Remind At *</label><input id="rTime" type="time"/><div class="form-error">Required</div></div>
+
+    <div class="form-group"><label>Repeat on Days</label>
+      <div class="days-picker" id="daysPicker">
+        <button class="day-btn selected" data-day="1">Mon</button>
+        <button class="day-btn selected" data-day="2">Tue</button>
+        <button class="day-btn selected" data-day="3">Wed</button>
+        <button class="day-btn selected" data-day="4">Thu</button>
+        <button class="day-btn selected" data-day="5">Fri</button>
+        <button class="day-btn selected" data-day="6">Sat</button>
+        <button class="day-btn selected" data-day="7">Sun</button>
+      </div>
+    </div>
+
+    <div class="toast" id="remToast"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="saveRemBtn" onclick="saveRem()">Save Reminder</button>
+    </div>
+  </div>
+</div>
+
+<script src="_nav.js"></script>
+<script>
+let reminders=[],meds=[];
+
+async function init(){
+  document.getElementById('sidebarMount').outerHTML=renderSidebar('/reminders');
+  try{const r=await fetch('/api/me',{credentials:'include'});if(r.status===401){window.location.href='/login';return;}}catch(e){window.location.href='/login';return;}
+  // Init days picker
+  document.querySelectorAll('.day-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>btn.classList.toggle('selected'));
+  });
+  await Promise.all([loadReminders(),loadMeds()]);
+}
+
+async function loadReminders(){
+  try{
+    const r=await fetch('/api/reminders',{credentials:'include'});
+    reminders=await r.json();
+    updateMetrics();renderTimeline();renderList();
+  }catch(e){document.getElementById('remList').innerHTML='<p style="color:var(--text-muted);padding:20px">Backend not connected.</p>';}
+}
+
+async function loadMeds(){
+  try{
+    const r=await fetch('/api/medications',{credentials:'include'});
+    meds=await r.json();
+    const sel=document.getElementById('rMed');
+    meds.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=`${m.name} ${m.dosage}`;sel.appendChild(o);});
+  }catch(e){}
+}
+
+function updateMetrics(){
+  const today=new Date().getDay()||7; // 1=Mon…7=Sun
+  const active=reminders.filter(r=>r.is_active);
+  const firing=active.filter(r=>{
+    const days=r.days_of_week.split(',').map(Number);
+    return days.includes(today);
+  });
+  document.getElementById('mTotal').textContent=reminders.length;
+  document.getElementById('mActive').textContent=active.length;
+  document.getElementById('mToday').textContent=firing.length;
+}
+
+function renderTimeline(){
+  const el=document.getElementById('timeline');
+  if(!reminders.length){el.innerHTML='<div class="empty-state" style="padding:24px"><div class="empty-icon">⏰</div><p>No reminders yet.</p></div>';return;}
+  const sorted=[...reminders].sort((a,b)=>a.remind_at.localeCompare(b.remind_at));
+  const groups={};
+  sorted.forEach(r=>{
+    const h=parseInt(r.remind_at);
+    const label=h<12?'Morning (Before Noon)':h<17?'Afternoon (12 PM – 5 PM)':'Evening / Night';
+    if(!groups[label])groups[label]=[];
+    groups[label].push(r);
+  });
+  el.innerHTML=Object.entries(groups).map(([g,items])=>`
+    <div class="timeline-section">
+      <div class="timeline-hour">${g}</div>
+      ${items.map(r=>`
+        <div class="rem-item${r.is_active?'':' inactive'}">
+          <div class="rem-time-big">${r.remind_at.slice(0,5)}</div>
+          <div class="rem-details">
+            <div class="rem-title-big">${r.title}</div>
+            <div class="rem-meta">
+              ${r.med_name?`<span>💊 ${r.med_name}</span>`:''}
+              <span>${dayLabels(r.days_of_week)}</span>
+            </div>
+          </div>
+          <div class="rem-actions">
+            <label class="toggle"><input type="checkbox" ${r.is_active?'checked':''} onchange="toggleRem(${r.id})"/><div class="toggle-track"></div></label>
+            <button class="btn-icon danger" onclick="deleteRem(${r.id})">🗑</button>
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function renderList(){document.getElementById('remList').innerHTML=document.getElementById('timeline').innerHTML;}
+
+function dayLabels(str){
+  const map=['','Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const days=str.split(',').map(Number);
+  if(days.length===7)return 'Every day';
+  if(JSON.stringify(days)==='[1,2,3,4,5]')return 'Weekdays';
+  if(JSON.stringify(days)==='[6,7]')return 'Weekends';
+  return days.map(d=>map[d]).join(', ');
+}
+
+function openModal(){document.getElementById('remModal').classList.add('open');}
+function closeModal(){document.getElementById('remModal').classList.remove('open');}
+document.getElementById('remModal').addEventListener('click',e=>{if(e.target===document.getElementById('remModal'))closeModal();});
+
+async function saveRem(){
+  const title=document.getElementById('rTitle').value.trim();
+  const remind_at=document.getElementById('rTime').value;
+  const toast=document.getElementById('remToast');toast.className='toast';
+  let valid=true;
+  if(!title){document.getElementById('fg-rtitle').classList.add('error');valid=false;}else document.getElementById('fg-rtitle').classList.remove('error');
+  if(!remind_at){document.getElementById('fg-rtime').classList.add('error');valid=false;}else document.getElementById('fg-rtime').classList.remove('error');
+  if(!valid)return;
+  const days=[...document.querySelectorAll('.day-btn.selected')].map(b=>b.dataset.day).join(',');
+  const btn=document.getElementById('saveRemBtn');btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const r=await fetch('/api/reminders',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',
+      body:JSON.stringify({title,remind_at,medication_id:document.getElementById('rMed').value||null,days_of_week:days||'1,2,3,4,5,6,7'})});
+    const d=await r.json();
+    if(r.ok){toast.textContent='✅ Reminder saved!';toast.className='toast success';setTimeout(()=>{closeModal();loadReminders();},800);}
+    else{toast.textContent='❌ '+d.error;toast.className='toast error';}
+  }catch(e){toast.textContent='❌ Backend not connected.';toast.className='toast error';}
+  btn.disabled=false;btn.textContent='Save Reminder';
+}
+
+async function toggleRem(id){
+  try{await fetch(`/api/reminders/${id}/toggle`,{method:'PATCH',credentials:'include'});await loadReminders();}catch(e){}
+}
+async function deleteRem(id){
+  if(!confirm('Delete this reminder?'))return;
+  try{await fetch(`/api/reminders/${id}`,{method:'DELETE',credentials:'include'});await loadReminders();}catch(e){}
+}
+
+init();
+</script>
+</body>
+</html>

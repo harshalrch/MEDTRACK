@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign In — MedTrack</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;600;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    body { background: linear-gradient(135deg, var(--navy) 0%, #0a2e28 100%); min-height: 100vh; }
+    .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 100px 20px 40px; }
+    .login-container { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; max-width: 900px; width: 100%; }
+    .login-info { color: white; }
+    .login-info h1 { font-family: 'Fraunces', serif; font-size: 2.8rem; font-weight: 900; line-height: 1.1; margin-bottom: 16px; letter-spacing: -1px; }
+    .login-info h1 em { color: var(--teal-light); font-style: normal; }
+    .login-info p { color: rgba(255,255,255,0.6); line-height: 1.7; font-size: 1rem; margin-bottom: 32px; }
+    .login-features { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .login-features li { display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,0.75); font-size: 0.9rem; }
+    .login-features li span { width: 32px; height: 32px; border-radius: 8px; background: rgba(14,154,138,0.2); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+    .form-card { animation: fadeUp 0.5s ease both; }
+    .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--text-muted); font-size: 0.82rem; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    @media (max-width: 700px) { .login-container { grid-template-columns: 1fr; } .login-info { display: none; } }
+  </style>
+</head>
+<body>
+  <nav>
+    <a class="nav-logo" href="/"><div class="logo-icon">💊</div>Med<span>Track</span></a>
+    <ul class="nav-links">
+      <li><a href="/emergency" class="nav-emergency">🚨 Emergency</a></li>
+      <li><a href="/register" class="nav-cta">Create Account</a></li>
+    </ul>
+  </nav>
+
+  <div class="login-wrap">
+    <div class="login-container">
+      <div class="login-info">
+        <div class="section-label" style="background:rgba(14,154,138,0.15);color:var(--teal-light);border-color:rgba(14,154,138,0.3)">Welcome Back</div>
+        <h1>Your health, <em>organized</em>.</h1>
+        <p>Sign in to access your personalized medication dashboard, track doses, and stay safe.</p>
+        <ul class="login-features">
+          <li><span>💊</span> View today's medication schedule</li>
+          <li><span>⏰</span> Manage smart reminders</li>
+          <li><span>⚠️</span> Check drug interactions</li>
+          <li><span>📊</span> Track adherence trends</li>
+          <li><span>🚨</span> Access emergency services</li>
+        </ul>
+      </div>
+      <div>
+        <div class="form-card">
+          <div class="form-title">Sign In</div>
+          <div class="form-subtitle">Welcome back to MedTrack</div>
+
+          <div class="form-group" id="fg-email">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" placeholder="ramesh@email.com" autocomplete="email"/>
+            <div class="form-error">Please enter a valid email.</div>
+          </div>
+          <div class="form-group" id="fg-password">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password"/>
+            <div class="form-error">Please enter your password.</div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;margin-bottom:20px">
+            <a href="#" style="font-size:0.85rem;color:var(--teal);text-decoration:none">Forgot password?</a>
+          </div>
+
+          <button class="btn-submit" id="loginBtn" onclick="doLogin()">Sign In →</button>
+          <div class="toast" id="toast"></div>
+          <p class="form-login">Don't have an account? <a href="/register">Create one here</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function doLogin() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const toast = document.getElementById('toast');
+      const btn = document.getElementById('loginBtn');
+
+      // Reset errors
+      document.querySelectorAll('.form-group').forEach(g => g.classList.remove('error'));
+      toast.className = 'toast';
+
+      let valid = true;
+      if (!email || !/\S+@\S+\.\S+/.test(email)) {
+        document.getElementById('fg-email').classList.add('error'); valid = false;
+      }
+      if (!password) {
+        document.getElementById('fg-password').classList.add('error'); valid = false;
+      }
+      if (!valid) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in…';
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+          credentials: 'include'
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          toast.textContent = `✅ ${data.message}`;
+          toast.className = 'toast success show';
+          setTimeout(() => window.location.href = '/dashboard', 1000);
+        } else {
+          toast.textContent = `❌ ${data.error}`;
+          toast.className = 'toast error show';
+          btn.disabled = false;
+          btn.textContent = 'Sign In →';
+        }
+      } catch (e) {
+        toast.textContent = '❌ Could not connect to server. Make sure the backend is running.';
+        toast.className = 'toast error show';
+        btn.disabled = false;
+        btn.textContent = 'Sign In →';
+      }
+    }
+
+    // Allow Enter key to submit
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  </script>
+</body>
+</html>

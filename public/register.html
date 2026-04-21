@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Create Account — MedTrack</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;600;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    body { background: linear-gradient(135deg, var(--navy) 0%, #0a2e28 100%); }
+    .register-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 100px 20px 60px; }
+    .register-container { max-width: 700px; width: 100%; }
+    .register-header { text-align: center; margin-bottom: 36px; }
+    .register-header h1 { font-family: 'Fraunces', serif; font-size: 2.4rem; font-weight: 900; color: white; line-height: 1.1; margin-bottom: 8px; letter-spacing: -1px; }
+    .register-header h1 em { color: var(--teal-light); font-style: normal; }
+    .register-header p { color: rgba(255,255,255,0.6); }
+    .form-card { animation: fadeUp 0.5s ease both; }
+    .step-indicator { display: flex; justify-content: center; gap: 8px; margin-bottom: 28px; }
+    .step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: all 0.3s; }
+    .step-dot.active { background: var(--teal); width: 24px; border-radius: 4px; }
+    .step-dot.done { background: var(--teal); }
+    .form-section { display: none; }
+    .form-section.active { display: block; animation: fadeUp 0.3s ease; }
+    .section-title { font-family: 'Fraunces', serif; font-size: 1.15rem; font-weight: 700; color: var(--navy); margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .section-title span { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--teal), var(--teal-dark)); color: white; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; font-family: 'DM Sans'; font-weight: 700; }
+    .btn-next { background: var(--teal); color: white; padding: 12px 28px; border-radius: 10px; border: none; cursor: pointer; font-size: 0.95rem; font-weight: 600; transition: all 0.2s; }
+    .btn-next:hover { background: var(--teal-dark); }
+    .btn-back { background: transparent; color: var(--text-muted); padding: 12px 20px; border-radius: 10px; border: 1px solid var(--border); cursor: pointer; font-size: 0.95rem; font-weight: 500; transition: all 0.2s; }
+    .btn-back:hover { border-color: var(--teal); color: var(--teal); }
+    .nav-btns { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
+    .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .role-option { border: 2px solid var(--border); border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s; text-align: center; }
+    .role-option:hover { border-color: var(--teal); background: rgba(14,154,138,0.04); }
+    .role-option.selected { border-color: var(--teal); background: rgba(14,154,138,0.08); }
+    .role-option input { display: none; }
+    .role-icon { font-size: 1.6rem; margin-bottom: 6px; }
+    .role-name { font-size: 0.85rem; font-weight: 600; color: var(--navy); }
+    .role-desc { font-size: 0.75rem; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <nav>
+    <a class="nav-logo" href="/"><div class="logo-icon">💊</div>Med<span>Track</span></a>
+    <ul class="nav-links">
+      <li><a href="/emergency" class="nav-emergency">🚨 Emergency</a></li>
+      <li><a href="/login">Sign In</a></li>
+    </ul>
+  </nav>
+
+  <div class="register-wrap">
+    <div class="register-container">
+      <div class="register-header">
+        <div class="section-label" style="background:rgba(14,154,138,0.15);color:var(--teal-light);border-color:rgba(14,154,138,0.3)">Free Forever</div>
+        <h1>Join <em>MedTrack</em></h1>
+        <p>Create your account and take control of your health journey</p>
+      </div>
+
+      <div class="step-indicator">
+        <div class="step-dot active" id="dot0"></div>
+        <div class="step-dot" id="dot1"></div>
+        <div class="step-dot" id="dot2"></div>
+      </div>
+
+      <div class="form-card">
+        <!-- STEP 1: Personal Info -->
+        <div class="form-section active" id="step0">
+          <div class="section-title"><span>1</span> Personal Information</div>
+          <div class="form-row">
+            <div class="form-group" id="fg-firstname"><label>First Name</label><input type="text" id="firstname" placeholder="Ramesh" autocomplete="given-name"/><div class="form-error">Required.</div></div>
+            <div class="form-group" id="fg-lastname"><label>Last Name</label><input type="text" id="lastname" placeholder="Sharma" autocomplete="family-name"/><div class="form-error">Required.</div></div>
+          </div>
+          <div class="form-group" id="fg-email"><label>Email Address</label><input type="email" id="email" placeholder="ramesh@email.com" autocomplete="email"/><div class="form-error">Please enter a valid email.</div></div>
+          <div class="form-group" id="fg-phone"><label>Phone Number</label><input type="tel" id="phone" placeholder="+91 98765 43210" autocomplete="tel"/><div class="form-error">Required.</div></div>
+          <div class="form-row">
+            <div class="form-group" id="fg-age"><label>Age</label><input type="number" id="age" placeholder="65" min="1" max="120"/><div class="form-error">Enter valid age (1-120).</div></div>
+            <div class="form-group" id="fg-blood"><label>Blood Group <small style="color:var(--text-muted)">(optional)</small></label><select id="blood"><option value="">Select</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select></div>
+          </div>
+          <div class="nav-btns"><div></div><button class="btn-next" onclick="nextStep(0)">Next: Choose Role →</button></div>
+        </div>
+
+        <!-- STEP 2: Role Selection -->
+        <div class="form-section" id="step1">
+          <div class="section-title"><span>2</span> I Am A…</div>
+          <div class="role-grid">
+            <label class="role-option" onclick="selectRole(this,'Patient')"><input type="radio" name="role" value="Patient"/><div class="role-icon">🧑‍🤕</div><div class="role-name">Patient</div><div class="role-desc">Managing my medications</div></label>
+            <label class="role-option" onclick="selectRole(this,'Caregiver / Family')"><input type="radio" name="role" value="Caregiver / Family"/><div class="role-icon">👨‍👩‍👧</div><div class="role-name">Caregiver / Family</div><div class="role-desc">Helping a loved one</div></label>
+            <label class="role-option" onclick="selectRole(this,'Doctor')"><input type="radio" name="role" value="Doctor"/><div class="role-icon">👨‍⚕️</div><div class="role-name">Doctor</div><div class="role-desc">Monitoring my patients</div></label>
+            <label class="role-option" onclick="selectRole(this,'Pharmacist')"><input type="radio" name="role" value="Pharmacist"/><div class="role-icon">💊</div><div class="role-name">Pharmacist</div><div class="role-desc">Verifying prescriptions</div></label>
+          </div>
+          <div class="form-error" id="role-error" style="margin-bottom:12px">Please select a role.</div>
+          <div class="nav-btns"><button class="btn-back" onclick="prevStep(1)">← Back</button><button class="btn-next" onclick="nextStep(1)">Next: Set Password →</button></div>
+        </div>
+
+        <!-- STEP 3: Password -->
+        <div class="form-section" id="step2">
+          <div class="section-title"><span>3</span> Secure Your Account</div>
+          <div class="form-group" id="fg-password">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="Min 8 characters" oninput="checkStrength()"/>
+            <div class="password-strength">
+              <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+              <span class="strength-label" id="strengthLabel">Enter a password</span>
+            </div>
+            <div class="form-error">Password must be at least 8 characters.</div>
+          </div>
+          <div class="form-group" id="fg-confirm">
+            <label>Confirm Password</label>
+            <input type="password" id="confirm" placeholder="Repeat password"/>
+            <div class="form-error">Passwords do not match.</div>
+          </div>
+          <div class="form-check" id="fg-terms">
+            <input type="checkbox" id="terms"/>
+            <label for="terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></label>
+          </div>
+          <div class="form-error" id="terms-error">Please accept the terms.</div>
+
+          <div class="nav-btns">
+            <button class="btn-back" onclick="prevStep(2)">← Back</button>
+            <button class="btn-submit" id="submitBtn" style="width:auto;padding:12px 32px" onclick="doRegister()">Create My Account 🎉</button>
+          </div>
+          <div class="toast" id="toast"></div>
+        </div>
+      </div>
+
+      <p class="form-login" style="text-align:center;margin-top:20px;color:rgba(255,255,255,0.5)">Already have an account? <a href="/login" style="color:var(--teal-light)">Sign in here</a></p>
+    </div>
+  </div>
+
+  <script>
+    let currentStep = 0;
+    let selectedRole = '';
+
+    function selectRole(el, role) {
+      document.querySelectorAll('.role-option').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedRole = role;
+      document.getElementById('role-error').style.display = 'none';
+    }
+
+    function nextStep(from) {
+      if (from === 0 && !validateStep0()) return;
+      if (from === 1) {
+        if (!selectedRole) { document.getElementById('role-error').style.display = 'block'; return; }
+      }
+      document.getElementById(`step${from}`).classList.remove('active');
+      document.getElementById(`dot${from}`).classList.remove('active');
+      document.getElementById(`dot${from}`).classList.add('done');
+      currentStep = from + 1;
+      document.getElementById(`step${currentStep}`).classList.add('active');
+      document.getElementById(`dot${currentStep}`).classList.add('active');
+    }
+
+    function prevStep(from) {
+      document.getElementById(`step${from}`).classList.remove('active');
+      document.getElementById(`dot${from}`).classList.remove('active');
+      currentStep = from - 1;
+      document.getElementById(`step${currentStep}`).classList.add('active');
+      document.getElementById(`dot${currentStep}`).classList.add('active');
+      document.getElementById(`dot${from}`).classList.remove('done');
+    }
+
+    function validateStep0() {
+      let valid = true;
+      const fields = [
+        { id: 'firstname', fgId: 'fg-firstname', check: v => v.trim().length > 0 },
+        { id: 'lastname', fgId: 'fg-lastname', check: v => v.trim().length > 0 },
+        { id: 'email', fgId: 'fg-email', check: v => /\S+@\S+\.\S+/.test(v) },
+        { id: 'phone', fgId: 'fg-phone', check: v => v.trim().length >= 7 },
+        { id: 'age', fgId: 'fg-age', check: v => v >= 1 && v <= 120 },
+      ];
+      fields.forEach(f => {
+        const el = document.getElementById(f.id);
+        const fg = document.getElementById(f.fgId);
+        fg.classList.remove('error');
+        if (!f.check(el.value)) { fg.classList.add('error'); valid = false; }
+      });
+      return valid;
+    }
+
+    function checkStrength() {
+      const pw = document.getElementById('password').value;
+      const fill = document.getElementById('strengthFill');
+      const label = document.getElementById('strengthLabel');
+      let score = 0;
+      if (pw.length >= 8) score++;
+      if (/[A-Z]/.test(pw)) score++;
+      if (/[0-9]/.test(pw)) score++;
+      if (/[^A-Za-z0-9]/.test(pw)) score++;
+      const configs = [
+        { w: '0%', c: 'transparent', t: 'Enter a password' },
+        { w: '25%', c: '#e05c5c', t: 'Weak' },
+        { w: '50%', c: '#f0a500', t: 'Fair' },
+        { w: '75%', c: '#3b82f6', t: 'Good' },
+        { w: '100%', c: '#16a34a', t: 'Strong ✓' }
+      ];
+      fill.style.width = configs[score].w;
+      fill.style.background = configs[score].c;
+      label.textContent = configs[score].t;
+    }
+
+    async function doRegister() {
+      const password = document.getElementById('password').value;
+      const confirm = document.getElementById('confirm').value;
+      const terms = document.getElementById('terms').checked;
+      const toast = document.getElementById('toast');
+      const btn = document.getElementById('submitBtn');
+
+      document.getElementById('fg-password').classList.remove('error');
+      document.getElementById('fg-confirm').classList.remove('error');
+      document.getElementById('terms-error').style.display = 'none';
+      toast.className = 'toast';
+
+      let valid = true;
+      if (password.length < 8) { document.getElementById('fg-password').classList.add('error'); valid = false; }
+      if (password !== confirm) { document.getElementById('fg-confirm').classList.add('error'); valid = false; }
+      if (!terms) { document.getElementById('terms-error').style.display = 'block'; valid = false; }
+      if (!valid) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Creating account…';
+
+      const payload = {
+        first_name: document.getElementById('firstname').value.trim(),
+        last_name: document.getElementById('lastname').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        age: document.getElementById('age').value,
+        role: selectedRole,
+        password
+      };
+
+      try {
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          credentials: 'include'
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          toast.textContent = `${data.message}`;
+          toast.className = 'toast success show';
+          setTimeout(() => window.location.href = '/dashboard', 1500);
+        } else if (data.error === 'account_exists') {
+          toast.textContent = data.message;
+          toast.className = 'toast warning show';
+          // Show sign in link
+          toast.innerHTML = data.message + ` <a href="/login" style="color:inherit;font-weight:700;text-decoration:underline">Sign in here →</a>`;
+          btn.disabled = false;
+          btn.textContent = 'Create My Account 🎉';
+        } else {
+          toast.textContent = `❌ ${data.error}`;
+          toast.className = 'toast error show';
+          btn.disabled = false;
+          btn.textContent = 'Create My Account 🎉';
+        }
+      } catch (e) {
+        toast.textContent = '❌ Cannot connect to server. Make sure the backend is running on port 3000.';
+        toast.className = 'toast error show';
+        btn.disabled = false;
+        btn.textContent = 'Create My Account 🎉';
+      }
+    }
+  </script>
+</body>
+</html>

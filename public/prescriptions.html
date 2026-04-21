@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Prescriptions — MedTrack</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;600;700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    body{background:var(--bg-page);}
+    .rx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:16px;}
+    .rx-card{background:white;border-radius:14px;border:1px solid var(--border-soft);box-shadow:0 2px 8px rgba(0,0,0,0.04);overflow:hidden;transition:box-shadow 0.2s;}
+    .rx-card:hover{box-shadow:0 6px 18px rgba(0,0,0,0.09);}
+    .rx-header{background:linear-gradient(135deg,var(--navy),#0a2e28);padding:18px 20px;position:relative;}
+    .rx-icon{font-size:2rem;margin-bottom:6px;}
+    .rx-doctor{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700;color:white;}
+    .rx-date{font-size:0.78rem;color:rgba(255,255,255,0.55);margin-top:2px;}
+    .rx-body{padding:16px 20px;}
+    .rx-notes{font-size:0.84rem;color:var(--text-muted);line-height:1.6;margin-bottom:12px;}
+    .rx-footer{padding:12px 20px;background:#fafbfc;border-top:1px solid #f0f2f4;display:flex;gap:8px;align-items:center;}
+    .upload-zone{border:2px dashed #dde3ea;border-radius:12px;padding:40px 24px;text-align:center;cursor:pointer;transition:all 0.2s;background:#fafbfc;margin-bottom:14px;}
+    .upload-zone:hover,.upload-zone.dragover{border-color:var(--teal);background:var(--teal-faint);}
+    .upload-zone .upload-icon{font-size:2.5rem;margin-bottom:10px;}
+    .upload-zone p{font-size:0.86rem;color:var(--text-muted);}
+    .upload-zone strong{color:var(--teal);}
+    .file-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(14,154,138,0.1);border:1px solid rgba(14,154,138,0.25);color:var(--teal-dark);padding:4px 10px;border-radius:7px;font-size:0.78rem;font-weight:600;margin-top:8px;}
+  </style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/"><div class="logo-icon">💊</div>Med<span>Track</span></a>
+  <ul class="nav-links">
+    <li><a href="/emergency" class="nav-emergency">🚨 SOS</a></li>
+    <li><a href="/profile">Profile</a></li>
+    <li><button onclick="doLogout()" style="background:none;border:1px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.7);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.84rem;font-family:inherit">Sign Out</button></li>
+  </ul>
+</nav>
+
+<div class="app-layout">
+  <div id="sidebarMount"></div>
+  <div class="page-main">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div><div class="page-title">📋 Prescriptions</div><div class="page-sub">Store and organise all your prescription records</div></div>
+      <button class="btn btn-primary btn-lg" onclick="openModal()">+ Add Prescription</button>
+    </div>
+
+    <div class="metric-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="metric-card"><div class="metric-val teal" id="mTotal">–</div><div class="metric-label">Total Prescriptions</div></div>
+      <div class="metric-card"><div class="metric-val green" id="mWithFile">–</div><div class="metric-label">With File Attached</div></div>
+      <div class="metric-card"><div class="metric-val amber" id="mRecent">–</div><div class="metric-label">Added This Month</div></div>
+    </div>
+
+    <div id="rxGrid"><div class="skeleton" style="height:200px;border-radius:14px;"></div></div>
+
+    <!-- What to store info box -->
+    <div class="card" style="margin-top:20px;background:linear-gradient(135deg,#f0fdf4,#e0f2fe)">
+      <div class="card-title">📌 What to Store Here</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.86rem;color:var(--text-main);">
+        <div style="display:flex;gap:9px;"><span>📄</span><span>Doctor's prescription letters</span></div>
+        <div style="display:flex;gap:9px;"><span>🏥</span><span>Hospital discharge summaries</span></div>
+        <div style="display:flex;gap:9px;"><span>💊</span><span>Pharmacy prescription receipts</span></div>
+        <div style="display:flex;gap:9px;"><span>🔬</span><span>Lab test orders & results</span></div>
+        <div style="display:flex;gap:9px;"><span>🩺</span><span>Specialist referral letters</span></div>
+        <div style="display:flex;gap:9px;"><span>📅</span><span>Follow-up appointment details</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="rxModal">
+  <div class="modal">
+    <div class="modal-title">Add Prescription</div>
+    <div class="modal-sub">Record your prescription details</div>
+
+    <div class="form-group"><label>Doctor's Name</label><input id="rxDoctor" type="text" placeholder="e.g. Dr. Priya Mehta"/></div>
+    <div class="form-group" id="fg-rxdate"><label>Date Issued *</label><input id="rxDate" type="date"/><div class="form-error">Required</div></div>
+    <div class="form-group"><label>Notes / Medications Listed</label><textarea id="rxNotes" rows="3" placeholder="List the medications prescribed, dosages, and any instructions…" style="resize:vertical"></textarea></div>
+
+    <!-- File upload (front-end only – stores filename in DB) -->
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('rxFile').click()"
+         ondragover="handleDrag(event,true)" ondragleave="handleDrag(event,false)" ondrop="handleDrop(event)">
+      <input type="file" id="rxFile" accept=".pdf,.jpg,.png,.jpeg" style="display:none" onchange="handleFile(this.files[0])"/>
+      <div class="upload-icon">📎</div>
+      <p><strong>Click to upload</strong> or drag & drop</p>
+      <p>PDF, JPG, PNG up to 10 MB</p>
+      <div id="fileChip"></div>
+    </div>
+
+    <div class="toast" id="rxToast"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="saveRxBtn" onclick="saveRx()">Save Prescription</button>
+    </div>
+  </div>
+</div>
+
+<script src="_nav.js"></script>
+<script>
+let rxList=[];let selectedFile=null;
+
+async function init(){
+  document.getElementById('sidebarMount').outerHTML=renderSidebar('/prescriptions');
+  try{const r=await fetch('/api/me',{credentials:'include'});if(r.status===401){window.location.href='/login';return;}}catch(e){window.location.href='/login';return;}
+  document.getElementById('rxDate').value=new Date().toISOString().split('T')[0];
+  await loadRx();
+}
+
+async function loadRx(){
+  try{
+    const r=await fetch('/api/prescriptions',{credentials:'include'});
+    rxList=await r.json();
+    renderRx();updateMetrics();
+  }catch(e){document.getElementById('rxGrid').innerHTML='<p style="color:var(--text-muted);padding:20px">Backend not connected.</p>';}
+}
+
+function updateMetrics(){
+  document.getElementById('mTotal').textContent=rxList.length;
+  document.getElementById('mWithFile').textContent=rxList.filter(r=>r.file_name).length;
+  const now=new Date();
+  document.getElementById('mRecent').textContent=rxList.filter(r=>{const d=new Date(r.created_at);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).length;
+}
+
+function renderRx(){
+  if(!rxList.length){
+    document.getElementById('rxGrid').innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><h3>No prescriptions yet</h3><p>Add your first prescription record to keep everything organised.</p><button class="btn btn-primary" onclick="openModal()">+ Add Prescription</button></div>';return;
+  }
+  document.getElementById('rxGrid').innerHTML=`<div class="rx-grid">${rxList.map(rx=>`
+    <div class="rx-card">
+      <div class="rx-header">
+        <div class="rx-icon">📋</div>
+        <div class="rx-doctor">${rx.doctor_name||'Unknown Doctor'}</div>
+        <div class="rx-date">Issued: ${new Date(rx.issued_date).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}</div>
+      </div>
+      <div class="rx-body">
+        ${rx.notes?`<div class="rx-notes">${rx.notes}</div>`:'<div class="rx-notes" style="font-style:italic">No notes added.</div>'}
+        ${rx.file_name?`<div class="file-chip">📎 ${rx.file_name}</div>`:''}
+      </div>
+      <div class="rx-footer">
+        <span class="badge badge-teal">📅 ${new Date(rx.created_at).toLocaleDateString('en-IN')}</span>
+        <div style="flex:1"></div>
+        <button class="btn-icon danger" onclick="deleteRx(${rx.id})" title="Delete">🗑</button>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+function handleFile(file){if(!file)return;selectedFile=file;document.getElementById('fileChip').innerHTML=`<div class="file-chip">📎 ${file.name} (${(file.size/1024).toFixed(0)} KB)</div>`;}
+function handleDrag(e,over){e.preventDefault();document.getElementById('uploadZone').classList.toggle('dragover',over);}
+function handleDrop(e){e.preventDefault();handleFile(e.dataTransfer.files[0]);document.getElementById('uploadZone').classList.remove('dragover');}
+
+function openModal(){document.getElementById('rxModal').classList.add('open');}
+function closeModal(){document.getElementById('rxModal').classList.remove('open');}
+document.getElementById('rxModal').addEventListener('click',e=>{if(e.target===document.getElementById('rxModal'))closeModal();});
+
+async function saveRx(){
+  const issued_date=document.getElementById('rxDate').value;
+  const toast=document.getElementById('rxToast');toast.className='toast';
+  if(!issued_date){document.getElementById('fg-rxdate').classList.add('error');return;}
+  document.getElementById('fg-rxdate').classList.remove('error');
+  const btn=document.getElementById('saveRxBtn');btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const r=await fetch('/api/prescriptions',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',
+      body:JSON.stringify({doctor_name:document.getElementById('rxDoctor').value.trim()||null,issued_date,notes:document.getElementById('rxNotes').value.trim()||null,file_name:selectedFile?selectedFile.name:null})});
+    const d=await r.json();
+    if(r.ok){toast.textContent='✅ Prescription saved!';toast.className='toast success';setTimeout(()=>{closeModal();selectedFile=null;document.getElementById('fileChip').innerHTML='';loadRx();},800);}
+    else{toast.textContent='❌ '+d.error;toast.className='toast error';}
+  }catch(e){toast.textContent='❌ Backend not connected.';toast.className='toast error';}
+  btn.disabled=false;btn.textContent='Save Prescription';
+}
+
+async function deleteRx(id){
+  if(!confirm('Delete this prescription record?'))return;
+  try{await fetch(`/api/prescriptions/${id}`,{method:'DELETE',credentials:'include'});await loadRx();}catch(e){}
+}
+
+init();
+</script>
+</body>
+</html>

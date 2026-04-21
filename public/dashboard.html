@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Dashboard — MedTrack</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;600;700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    body{background:var(--bg-page);}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;}
+    .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px;}
+    /* Med rows */
+    .med-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid #f0f2f4;}
+    .med-row:last-child{border-bottom:none;}
+    .med-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+    .dot-taken{background:var(--green);}
+    .dot-due{background:var(--amber);}
+    .dot-later{background:#cbd5e1;}
+    .med-name-col{flex:1;min-width:0;}
+    .med-name{font-size:0.88rem;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .med-sub{font-size:0.75rem;color:var(--text-muted);}
+    .take-btn{background:var(--teal);color:white;border:none;border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:600;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+    .take-btn:hover{background:var(--teal-dark);}
+    .take-btn.done{background:var(--green);cursor:default;}
+    /* Adherence bar */
+    .adh-bar-wrap{margin-top:10px;}
+    .adh-label{display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text-muted);margin-bottom:5px;}
+    .adh-bar{height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;}
+    .adh-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--teal-light));border-radius:4px;transition:width 0.8s ease;}
+    /* Interaction */
+    .int-item{display:flex;gap:11px;align-items:flex-start;padding:11px;border-radius:10px;margin-bottom:8px;}
+    .int-item.severe{background:#fff0f0;border:1px solid #fca5a5;}
+    .int-item.moderate{background:#fff7ed;border:1px solid #fed7aa;}
+    .int-item.mild{background:#fefce8;border:1px solid #fde68a;}
+    .int-item.safe{background:#f0fdf4;border:1px solid #bbf7d0;}
+    .int-icon{font-size:1.1rem;flex-shrink:0;margin-top:1px;}
+    .int-text{font-size:0.82rem;line-height:1.5;}
+    .int-text strong{display:block;margin-bottom:1px;}
+    .int-item.severe .int-text strong{color:#991b1b;}
+    .int-item.moderate .int-text strong{color:#92400e;}
+    .int-item.mild .int-text strong{color:#78350f;}
+    .int-item.safe .int-text strong{color:#166534;}
+    /* Upcoming reminders */
+    .reminder-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f0f2f4;}
+    .reminder-row:last-child{border-bottom:none;}
+    .rem-time{font-size:0.82rem;font-weight:700;color:var(--navy);width:56px;flex-shrink:0;}
+    .rem-title{flex:1;font-size:0.86rem;color:var(--text-main);}
+    .rem-med{font-size:0.75rem;color:var(--text-muted);}
+    /* Quick stats pill */
+    .qs-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
+    .qs-pill{background:white;border:1px solid var(--border-soft);border-radius:100px;padding:6px 16px;font-size:0.8rem;font-weight:600;color:var(--text-main);display:flex;align-items:center;gap:6px;}
+    @media(max-width:900px){.two-col,.three-col{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/"><div class="logo-icon">💊</div>Med<span>Track</span></a>
+  <ul class="nav-links">
+    <li><a href="/emergency" class="nav-emergency">🚨 SOS</a></li>
+    <li><a href="/profile">Profile</a></li>
+    <li><button onclick="doLogout()" style="background:none;border:1px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.7);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.84rem;font-family:inherit">Sign Out</button></li>
+  </ul>
+</nav>
+
+<div class="app-layout">
+  <div id="sidebarMount"></div>
+  <div class="page-main">
+
+    <!-- Header -->
+    <div class="page-header">
+      <div class="page-title" id="greeting">Good day 👋</div>
+      <div class="page-sub" id="dateStr">Loading…</div>
+    </div>
+
+    <!-- Quick stat pills -->
+    <div class="qs-row" id="qsPills"></div>
+
+    <!-- Metric cards -->
+    <div class="metric-grid">
+      <div class="metric-card"><div class="metric-val green" id="mActive">–</div><div class="metric-label">Active Medications</div></div>
+      <div class="metric-card"><div class="metric-val teal" id="mAdherence">–</div><div class="metric-label">This Month's Adherence</div><div class="adh-bar-wrap"><div class="adh-bar"><div class="adh-fill" id="adhFill" style="width:0%"></div></div></div></div>
+      <div class="metric-card"><div class="metric-val amber" id="mDue">–</div><div class="metric-label">Due Today</div></div>
+      <div class="metric-card"><div class="metric-val red" id="mWarnings">–</div><div class="metric-label">Interaction Warnings</div></div>
+    </div>
+
+    <!-- Row 1: Today's schedule + Interactions -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">📅 Today's Schedule <a href="/medications" class="btn-ghost">View all</a></div>
+        <div id="scheduleList"><div class="skeleton" style="height:120px;border-radius:10px;"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">⚠️ Drug Interactions <a href="/interactions" class="btn-ghost">Check all</a></div>
+        <div id="interactionList"><div class="skeleton" style="height:120px;border-radius:10px;"></div></div>
+      </div>
+    </div>
+
+    <!-- Row 2: Upcoming reminders + Adherence chart -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">⏰ Today's Reminders <a href="/reminders" class="btn-ghost">Manage</a></div>
+        <div id="reminderList"><div class="skeleton" style="height:100px;border-radius:10px;"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 30-Day Adherence <a href="/reports" class="btn-ghost">Full report</a></div>
+        <canvas id="adhChart" height="140"></canvas>
+      </div>
+    </div>
+
+    <!-- Row 3: Recent prescriptions + Quick links -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">📋 Recent Prescriptions <a href="/prescriptions" class="btn-ghost">All</a></div>
+        <div id="rxList"><div class="skeleton" style="height:90px;border-radius:10px;"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">⚡ Quick Actions</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <a href="/medications" class="btn btn-secondary" style="justify-content:center">+ Add Medication</a>
+          <a href="/reminders" class="btn btn-secondary" style="justify-content:center">+ Add Reminder</a>
+          <a href="/prescriptions" class="btn btn-secondary" style="justify-content:center">+ Prescription</a>
+          <a href="/emergency" class="btn" style="background:var(--coral);color:white;justify-content:center">🚨 Emergency</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="_nav.js"></script>
+<script>
+let user=null, meds=[], reminders=[], interactions=[], reports={logs:[]};
+
+async function init(){
+  document.getElementById('sidebarMount').outerHTML = renderSidebar('/dashboard');
+  try{
+    const r = await fetch('/api/me',{credentials:'include'});
+    if(r.status===401){window.location.href='/login';return;}
+    user = await r.json();
+    const h = new Date().getHours();
+    document.getElementById('greeting').textContent = `${h<12?'Good Morning':h<17?'Good Afternoon':'Good Evening'}, ${user.first_name} 👋`;
+    const now=new Date();
+    const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    document.getElementById('dateStr').textContent = `${days[now.getDay()]}, ${mons[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+  }catch(e){window.location.href='/login';return;}
+
+  await Promise.all([loadMeds(), loadReminders(), loadInteractions(), loadReport()]);
+}
+
+async function loadMeds(){
+  try{
+    const r=await fetch('/api/medications',{credentials:'include'});
+    meds=await r.json();
+    document.getElementById('mActive').textContent=meds.length;
+    document.getElementById('mDue').textContent=meds.length;
+    renderSchedule();
+    renderQsPills();
+  }catch(e){document.getElementById('scheduleList').innerHTML='<p style="color:var(--text-muted);font-size:0.85rem">Backend not connected.</p>';}
+  try{
+    const r=await fetch('/api/medications/stats',{credentials:'include'});
+    const s=await r.json();
+    document.getElementById('mAdherence').textContent=s.adherence+'%';
+    document.getElementById('adhFill').style.width=s.adherence+'%';
+  }catch(e){}
+}
+
+async function loadReminders(){
+  try{
+    const r=await fetch('/api/reminders',{credentials:'include'});
+    reminders=await r.json();
+    renderReminders();
+  }catch(e){document.getElementById('reminderList').innerHTML='<p style="color:var(--text-muted);font-size:0.85rem">–</p>';}
+}
+
+async function loadInteractions(){
+  try{
+    const r=await fetch('/api/interactions/check',{method:'POST',credentials:'include'});
+    const d=await r.json();
+    interactions=d.interactions||[];
+    document.getElementById('mWarnings').textContent=interactions.length;
+    renderInteractions();
+  }catch(e){document.getElementById('interactionList').innerHTML='<p style="color:var(--text-muted);font-size:0.85rem">–</p>';}
+}
+
+async function loadReport(){
+  try{
+    const r=await fetch('/api/reports/adherence',{credentials:'include'});
+    reports=await r.json();
+    renderChart();
+    renderRx();
+  }catch(e){}
+}
+
+function renderSchedule(){
+  if(!meds.length){
+    document.getElementById('scheduleList').innerHTML='<div class="empty-state" style="padding:24px"><div class="empty-icon">📅</div><p>No medications yet. <a href="/medications" style="color:var(--teal);font-weight:600">Add one</a></p></div>';return;
+  }
+  document.getElementById('scheduleList').innerHTML=meds.slice(0,5).map((m,i)=>`
+    <div class="med-row">
+      <div class="med-dot ${i===0?'dot-taken':i<2?'dot-due':'dot-later'}"></div>
+      <div class="med-name-col">
+        <div class="med-name">${m.name} <span style="font-weight:400;color:var(--text-muted)">${m.dosage}</span></div>
+        <div class="med-sub">${m.time_of_day} ${m.with_food?'· With food':''}</div>
+      </div>
+      ${i===0?`<span class="badge badge-green">Taken</span>`
+       :i<2?`<button class="take-btn" onclick="logMed(${m.id},this)">✓ Take</button>`
+       :`<span class="badge badge-gray">Later</span>`}
+    </div>`).join('');
+}
+
+function renderReminders(){
+  if(!reminders.length){
+    document.getElementById('reminderList').innerHTML='<div class="empty-state" style="padding:18px"><div class="empty-icon">⏰</div><p>No reminders. <a href="/reminders" style="color:var(--teal);font-weight:600">Add one</a></p></div>';return;
+  }
+  document.getElementById('reminderList').innerHTML=reminders.slice(0,4).map(rem=>`
+    <div class="reminder-row">
+      <div class="rem-time">${rem.remind_at.slice(0,5)}</div>
+      <div class="rem-name-col">
+        <div class="rem-title">${rem.title}</div>
+        ${rem.med_name?`<div class="rem-med">💊 ${rem.med_name}</div>`:''}
+      </div>
+      <span class="badge ${rem.is_active?'badge-green':'badge-gray'}">${rem.is_active?'Active':'Off'}</span>
+    </div>`).join('');
+}
+
+function renderInteractions(){
+  if(!interactions.length){
+    document.getElementById('interactionList').innerHTML='<div class="int-item safe"><span class="int-icon">✅</span><div class="int-text"><strong>All Clear</strong>No known interactions among your current medications.</div></div>';return;
+  }
+  document.getElementById('interactionList').innerHTML=interactions.slice(0,3).map(i=>`
+    <div class="int-item ${i.severity}">
+      <span class="int-icon">${i.severity==='severe'?'🔴':i.severity==='moderate'?'🟠':'🟡'}</span>
+      <div class="int-text"><strong>${i.severity.charAt(0).toUpperCase()+i.severity.slice(1)}: ${i.drug_a} + ${i.drug_b}</strong>${i.description}</div>
+    </div>`).join('');
+}
+
+function renderRx(){
+  const rxEl = document.getElementById('rxList');
+  // Prescriptions from reports data; we'll do a simple placeholder if not available
+  rxEl.innerHTML='<div class="empty-state" style="padding:18px"><div class="empty-icon">📋</div><p>No prescriptions yet. <a href="/prescriptions" style="color:var(--teal);font-weight:600">Upload one</a></p></div>';
+  fetch('/api/prescriptions',{credentials:'include'}).then(r=>r.json()).then(rx=>{
+    if(!rx.length)return;
+    rxEl.innerHTML=rx.slice(0,3).map(p=>`
+      <div class="med-row">
+        <div class="med-dot dot-due"></div>
+        <div class="med-name-col">
+          <div class="med-name">${p.doctor_name||'Unknown Doctor'}</div>
+          <div class="med-sub">Issued: ${new Date(p.issued_date).toLocaleDateString('en-IN')}</div>
+        </div>
+        ${p.file_name?`<span class="badge badge-blue">📎 File</span>`:`<span class="badge badge-gray">Notes only</span>`}
+      </div>`).join('');
+  }).catch(()=>{});
+}
+
+function renderQsPills(){
+  document.getElementById('qsPills').innerHTML=`
+    <div class="qs-pill">💊 ${meds.length} medications</div>
+    <div class="qs-pill">📋 ${user?.role||'Patient'}</div>
+    <div class="qs-pill" style="color:var(--teal)">✓ Account active</div>`;
+}
+
+function renderChart(){
+  const canvas=document.getElementById('adhChart');
+  if(!canvas.getContext)return;
+  const ctx=canvas.getContext('2d');
+  const logs=reports.logs||[];
+  // Build last 14 days
+  const days=[];const taken=[];const missed=[];
+  for(let i=13;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const key=d.toISOString().split('T')[0];
+    days.push(d.getDate());
+    const t=logs.find(l=>l.day===key&&l.status==='taken');
+    const m=logs.find(l=>l.day===key&&l.status==='missed');
+    taken.push(t?t.cnt:0);missed.push(m?m.cnt:0);
+  }
+  canvas.width=canvas.offsetWidth||400;
+  const W=canvas.width,H=140;canvas.height=H;
+  const max=Math.max(...taken,...missed,1);
+  const barW=Math.floor((W-40)/(days.length*2+days.length));
+  ctx.clearRect(0,0,W,H);
+  days.forEach((d,i)=>{
+    const x=20+i*((W-40)/days.length);
+    // taken bar
+    const th=taken[i]/max*(H-30);
+    ctx.fillStyle='#0e9a8a';ctx.globalAlpha=0.85;
+    ctx.beginPath();ctx.roundRect(x,H-20-th,barW,th,2);ctx.fill();
+    // missed bar
+    const mh=missed[i]/max*(H-30);
+    ctx.fillStyle='#e05c5c';ctx.globalAlpha=0.7;
+    ctx.beginPath();ctx.roundRect(x+barW+2,H-20-mh,barW,mh,2);ctx.fill();
+    // label
+    ctx.globalAlpha=1;ctx.fillStyle='#5a7080';ctx.font='9px DM Sans,sans-serif';
+    ctx.textAlign='center';ctx.fillText(d,x+barW/2,H-6);
+  });
+  // Legend
+  ctx.fillStyle='#0e9a8a';ctx.fillRect(20,8,10,8);
+  ctx.fillStyle='#5a7080';ctx.font='10px DM Sans,sans-serif';ctx.textAlign='left';ctx.fillText('Taken',34,16);
+  ctx.fillStyle='#e05c5c';ctx.fillRect(80,8,10,8);
+  ctx.fillStyle='#5a7080';ctx.fillText('Missed',94,16);
+}
+
+async function logMed(id,btn){
+  try{
+    await fetch(`/api/medications/${id}/log`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'taken'}),credentials:'include'});
+    btn.textContent='✓ Done';btn.classList.add('done');btn.disabled=true;
+    btn.closest('.med-row').querySelector('.med-dot').className='med-dot dot-taken';
+  }catch(e){}
+}
+
+init();
+</script>
+</body>
+</html>

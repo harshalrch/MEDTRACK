@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Interactions — MedTrack</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;600;700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    body{background:var(--bg-page);}
+    .int-card{border-radius:14px;padding:18px 20px;margin-bottom:10px;display:flex;gap:16px;align-items:flex-start;border:1px solid;}
+    .int-card.severe  {background:#fff0f0;border-color:#fca5a5;}
+    .int-card.moderate{background:#fff7ed;border-color:#fed7aa;}
+    .int-card.mild    {background:#fefce8;border-color:#fde68a;}
+    .int-icon-big{font-size:2rem;flex-shrink:0;margin-top:2px;}
+    .int-body{flex:1;}
+    .int-severity{font-size:0.7rem;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:4px;}
+    .int-card.severe  .int-severity{color:#991b1b;}
+    .int-card.moderate .int-severity{color:#92400e;}
+    .int-card.mild    .int-severity{color:#78350f;}
+    .int-drugs{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700;color:var(--navy);margin-bottom:6px;}
+    .int-desc{font-size:0.86rem;color:var(--text-main);line-height:1.6;}
+    .int-advice{margin-top:8px;font-size:0.8rem;color:var(--text-muted);display:flex;gap:6px;align-items:flex-start;}
+    /* Manual checker */
+    .checker-box{background:white;border-radius:14px;padding:24px;border:1px solid var(--border-soft);box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+    .drug-tags{display:flex;flex-wrap:wrap;gap:8px;min-height:44px;padding:8px;border:1.5px solid #dde3ea;border-radius:9px;margin-bottom:10px;align-items:center;cursor:text;}
+    .drug-tags:focus-within{border-color:var(--teal);box-shadow:0 0 0 3px rgba(14,154,138,0.08);}
+    .drug-tag{display:inline-flex;align-items:center;gap:5px;background:rgba(14,154,138,0.1);border:1px solid rgba(14,154,138,0.25);color:var(--teal-dark);padding:4px 10px;border-radius:7px;font-size:0.8rem;font-weight:600;}
+    .drug-tag button{background:none;border:none;cursor:pointer;color:var(--teal-dark);font-size:0.9rem;line-height:1;padding:0;}
+    .drug-input{border:none;outline:none;font-size:0.88rem;font-family:'DM Sans',sans-serif;min-width:130px;flex:1;}
+    /* Severity legend */
+    .legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;}
+    .legend-item{display:flex;align-items:center;gap:7px;font-size:0.82rem;font-weight:600;}
+    .legend-dot{width:10px;height:10px;border-radius:50%;}
+    .dot-severe{background:#dc2626;}
+    .dot-moderate{background:#f97316;}
+    .dot-mild{background:#eab308;}
+    .dot-safe{background:#16a34a;}
+    /* Safe banner */
+    .safe-banner{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px 24px;display:flex;gap:16px;align-items:center;}
+    .safe-banner-icon{font-size:2.5rem;}
+    .safe-banner h3{font-family:'Fraunces',serif;font-size:1.1rem;font-weight:700;color:#166534;margin-bottom:4px;}
+    .safe-banner p{font-size:0.86rem;color:#14532d;}
+  </style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/"><div class="logo-icon">💊</div>Med<span>Track</span></a>
+  <ul class="nav-links">
+    <li><a href="/emergency" class="nav-emergency">🚨 SOS</a></li>
+    <li><a href="/profile">Profile</a></li>
+    <li><button onclick="doLogout()" style="background:none;border:1px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.7);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.84rem;font-family:inherit">Sign Out</button></li>
+  </ul>
+</nav>
+
+<div class="app-layout">
+  <div id="sidebarMount"></div>
+  <div class="page-main">
+    <div class="page-header"><div class="page-title">⚠️ Drug Interactions</div><div class="page-sub">Check for dangerous combinations among your medications</div></div>
+
+    <!-- My medications check -->
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-title">🔍 My Medications — Auto Check</div>
+      <p style="font-size:0.86rem;color:var(--text-muted);margin-bottom:16px">Automatically scans interactions among all your currently active medications.</p>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot dot-severe"></div>Severe – Avoid combination</div>
+        <div class="legend-item"><div class="legend-dot dot-moderate"></div>Moderate – Consult doctor</div>
+        <div class="legend-item"><div class="legend-dot dot-mild"></div>Mild – Monitor closely</div>
+        <div class="legend-item"><div class="legend-dot dot-safe"></div>Safe – No known interaction</div>
+      </div>
+      <div id="autoCheck"><div class="skeleton" style="height:120px;border-radius:10px"></div></div>
+    </div>
+
+    <!-- Manual checker -->
+    <div class="checker-box">
+      <div class="card-title" style="font-family:'Fraunces',serif;font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:4px">🧪 Manual Interaction Checker</div>
+      <p style="font-size:0.86rem;color:var(--text-muted);margin-bottom:16px">Type any drug names (even ones not in your list) and check interactions.</p>
+
+      <label style="font-size:0.82rem;font-weight:600;color:var(--text-main);display:block;margin-bottom:6px">Enter drug names (press Enter or comma to add)</label>
+      <div class="drug-tags" id="drugTags" onclick="document.getElementById('drugInput').focus()">
+        <input class="drug-input" id="drugInput" type="text" placeholder="Type a drug name…"
+               onkeydown="handleKey(event)" oninput="this.style.width=Math.max(130,(this.value.length+1)*9)+'px'"/>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-primary" onclick="runManualCheck()">Check Interactions</button>
+        <button class="btn btn-secondary" onclick="clearChecker()">Clear</button>
+      </div>
+      <div id="manualResult" style="margin-top:16px"></div>
+    </div>
+
+    <!-- Reference table -->
+    <div class="card" style="margin-top:18px">
+      <div class="card-title">📚 Common Interaction Reference</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Drug A</th><th>Drug B</th><th>Severity</th><th>Risk</th></tr></thead>
+          <tbody id="refTable"><tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:24px">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div style="margin-top:16px;padding:14px 18px;background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;font-size:0.82rem;color:#92400e;display:flex;gap:10px">
+      <span>⚠️</span><span><strong>Medical Disclaimer:</strong> This tool is for informational purposes only. Always consult your doctor or pharmacist before making any changes to your medications. This does not replace professional medical advice.</span>
+    </div>
+  </div>
+</div>
+
+<script src="_nav.js"></script>
+<script>
+let drugTags=[];
+const ALL_INTERACTIONS=[
+  {drug_a:'Warfarin',drug_b:'Aspirin',severity:'moderate',description:'Increased bleeding risk. Monitor INR closely and watch for signs of bleeding.'},
+  {drug_a:'Metformin',drug_b:'Alcohol',severity:'moderate',description:'Risk of lactic acidosis. Avoid heavy alcohol use while on Metformin.'},
+  {drug_a:'Amlodipine',drug_b:'Simvastatin',severity:'moderate',description:'Amlodipine may increase Simvastatin levels, raising muscle damage risk.'},
+  {drug_a:'Aspirin',drug_b:'Ibuprofen',severity:'moderate',description:'Concurrent use may reduce the cardioprotective effect of Aspirin.'},
+  {drug_a:'Warfarin',drug_b:'Ibuprofen',severity:'severe',description:'Significant increase in bleeding risk. Avoid this combination.'},
+  {drug_a:'Lisinopril',drug_b:'Potassium',severity:'moderate',description:'ACE inhibitors raise potassium; supplements may cause hyperkalemia.'},
+  {drug_a:'Atorvastatin',drug_b:'Clarithromycin',severity:'severe',description:'Clarithromycin inhibits statin metabolism – risk of myopathy/rhabdomyolysis.'},
+  {drug_a:'Metformin',drug_b:'Contrast dye',severity:'severe',description:'Stop Metformin before iodinated contrast procedures – risk of acute kidney injury.'},
+];
+
+async function init(){
+  document.getElementById('sidebarMount').outerHTML=renderSidebar('/interactions');
+  try{const r=await fetch('/api/me',{credentials:'include'});if(r.status===401){window.location.href='/login';return;}}catch(e){window.location.href='/login';return;}
+  await runAutoCheck();
+  renderRefTable();
+}
+
+async function runAutoCheck(){
+  try{
+    const r=await fetch('/api/interactions/check',{method:'POST',credentials:'include'});
+    const d=await r.json();
+    renderAutoResult(d.interactions||[],d.medicationNames||[]);
+  }catch(e){
+    document.getElementById('autoCheck').innerHTML='<p style="color:var(--text-muted);font-size:0.85rem">Backend not connected – showing reference data.</p>';
+  }
+}
+
+function renderAutoResult(interactions,names){
+  const el=document.getElementById('autoCheck');
+  if(!names.length){el.innerHTML='<div class="empty-state" style="padding:24px"><div class="empty-icon">💊</div><p>No medications in your list yet. <a href="/medications" style="color:var(--teal);font-weight:600">Add medications</a> to auto-check.</p></div>';return;}
+  let html=`<div style="margin-bottom:12px;font-size:0.84rem;color:var(--text-muted)">Checking among: <strong>${names.join(', ')}</strong></div>`;
+  if(!interactions.length){
+    html+=`<div class="safe-banner"><div class="safe-banner-icon">✅</div><div><h3>All Clear!</h3><p>No known interactions found among your ${names.length} medication${names.length>1?'s':''}. Keep monitoring as you add new medications.</p></div></div>`;
+  }else{
+    html+=interactions.map(i=>intCard(i)).join('');
+  }
+  el.innerHTML=html;
+}
+
+function intCard(i){
+  const icons={severe:'🔴',moderate:'🟠',mild:'🟡'};
+  const advice={severe:'⛔ Do not take together without doctor approval.',moderate:'⚠️ Consult your doctor or pharmacist before combining.',mild:'📋 Monitor for side effects. Inform your doctor.'};
+  return `<div class="int-card ${i.severity}">
+    <div class="int-icon-big">${icons[i.severity]||'⚠️'}</div>
+    <div class="int-body">
+      <div class="int-severity">${i.severity} interaction</div>
+      <div class="int-drugs">${i.drug_a} + ${i.drug_b}</div>
+      <div class="int-desc">${i.description}</div>
+      <div class="int-advice">💡 ${advice[i.severity]||''}</div>
+    </div>
+  </div>`;
+}
+
+function renderRefTable(){
+  document.getElementById('refTable').innerHTML=ALL_INTERACTIONS.map(i=>`
+    <tr>
+      <td><strong>${i.drug_a}</strong></td>
+      <td><strong>${i.drug_b}</strong></td>
+      <td><span class="badge ${i.severity==='severe'?'badge-red':i.severity==='moderate'?'badge-amber':'badge-green'}">${i.severity}</span></td>
+      <td style="font-size:0.82rem;color:var(--text-muted);max-width:280px">${i.description}</td>
+    </tr>`).join('');
+}
+
+// Manual checker
+function handleKey(e){
+  const val=document.getElementById('drugInput').value.trim();
+  if((e.key==='Enter'||e.key===',')&&val){
+    e.preventDefault();addTag(val);document.getElementById('drugInput').value='';
+  }
+  if(e.key==='Backspace'&&!val&&drugTags.length){
+    drugTags.pop();renderTags();
+  }
+}
+function addTag(val){
+  const name=val.replace(/,/g,'').trim();
+  if(name&&!drugTags.includes(name)){drugTags.push(name);renderTags();}
+}
+function removeTag(i){drugTags.splice(i,1);renderTags();}
+function renderTags(){
+  const container=document.getElementById('drugTags');
+  const oldInput=document.getElementById('drugInput');
+  container.innerHTML='';
+  drugTags.forEach((t,i)=>{
+    const chip=document.createElement('div');chip.className='drug-tag';
+    chip.innerHTML=`${t}<button onclick="removeTag(${i})">✕</button>`;container.appendChild(chip);
+  });
+  const input=document.createElement('input');input.className='drug-input';input.id='drugInput';input.type='text';input.placeholder=drugTags.length?'Add more…':'Type a drug name…';
+  input.addEventListener('keydown',handleKey);
+  container.appendChild(input);
+}
+function clearChecker(){drugTags=[];renderTags();document.getElementById('manualResult').innerHTML='';}
+
+async function runManualCheck(){
+  const inputVal=document.getElementById('drugInput').value.trim();
+  if(inputVal)addTag(inputVal);
+  if(drugTags.length<2){document.getElementById('manualResult').innerHTML='<div class="toast info" style="display:block">Enter at least 2 drug names to check for interactions.</div>';return;}
+  const el=document.getElementById('manualResult');
+  el.innerHTML='<div class="skeleton" style="height:80px;border-radius:10px"></div>';
+  try{
+    const r=await fetch('/api/interactions/manual',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({drugs:drugTags}),credentials:'include'});
+    const d=await r.json();
+    const found=d.interactions||[];
+    if(!found.length){
+      el.innerHTML=`<div class="safe-banner"><div class="safe-banner-icon">✅</div><div><h3>No Known Interactions</h3><p>No interactions found among: <strong>${drugTags.join(', ')}</strong>. This does not guarantee safety — always consult your doctor.</p></div></div>`;
+    }else{
+      el.innerHTML=`<div style="font-weight:600;margin-bottom:10px;color:var(--navy)">${found.length} interaction${found.length>1?'s':''} found:</div>`+found.map(i=>intCard(i)).join('');
+    }
+  }catch(e){
+    // Fallback: check locally
+    const lower=drugTags.map(d=>d.toLowerCase());
+    const found=ALL_INTERACTIONS.filter(i=>lower.some(n=>n.includes(i.drug_a.toLowerCase()))&&lower.some(n=>n.includes(i.drug_b.toLowerCase())));
+    if(!found.length){el.innerHTML=`<div class="safe-banner"><div class="safe-banner-icon">✅</div><div><h3>No Known Interactions</h3><p>No interactions found in our reference database. Always consult a doctor.</p></div></div>`;}
+    else{el.innerHTML=found.map(i=>intCard(i)).join('');}
+  }
+}
+
+init();
+</script>
+</body>
+</html>

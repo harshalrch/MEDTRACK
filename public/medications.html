@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Medications — MedTrack</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;600;700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    body{background:var(--bg-page);}
+    .med-card{background:white;border-radius:14px;border:1px solid var(--border-soft);box-shadow:0 2px 8px rgba(0,0,0,0.04);overflow:hidden;transition:box-shadow 0.2s;}
+    .med-card:hover{box-shadow:0 6px 20px rgba(0,0,0,0.08);}
+    .med-card-top{padding:18px 20px;border-bottom:1px solid #f0f2f4;}
+    .med-card-name{font-family:'Fraunces',serif;font-size:1.1rem;font-weight:700;color:var(--navy);}
+    .med-card-dosage{font-size:0.84rem;color:var(--text-muted);margin-top:2px;}
+    .med-card-body{padding:14px 20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .med-info-item label{font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:2px;}
+    .med-info-item span{font-size:0.84rem;font-weight:600;color:var(--navy);}
+    .med-card-footer{padding:12px 20px;display:flex;gap:8px;align-items:center;background:#fafbfc;border-top:1px solid #f0f2f4;}
+    .med-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;margin-top:20px;}
+    .filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;}
+    .filter-btn{padding:6px 14px;border-radius:100px;border:1.5px solid var(--border-soft);background:white;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.15s;font-family:inherit;color:var(--text-muted);}
+    .filter-btn.active{background:var(--teal);border-color:var(--teal);color:white;}
+    .search-input{flex:1;max-width:260px;padding:7px 14px;border:1.5px solid var(--border-soft);border-radius:9px;font-size:0.86rem;font-family:inherit;outline:none;transition:border 0.2s;}
+    .search-input:focus{border-color:var(--teal);}
+    /* Modal */
+    .freq-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+    .freq-opt{border:1.5px solid #dde3ea;border-radius:9px;padding:10px 12px;cursor:pointer;transition:all 0.15s;text-align:center;}
+    .freq-opt:hover{border-color:var(--teal);background:var(--teal-faint);}
+    .freq-opt.selected{border-color:var(--teal);background:var(--teal-faint);color:var(--teal-dark);font-weight:600;}
+    .freq-icon{font-size:1.3rem;margin-bottom:3px;}
+    .freq-label{font-size:0.78rem;}
+    .with-food-toggle{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fafbfc;border:1.5px solid #dde3ea;border-radius:9px;cursor:pointer;margin-bottom:14px;}
+    .with-food-toggle.active{background:rgba(14,154,138,0.06);border-color:var(--teal);}
+  </style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/"><div class="logo-icon">💊</div>Med<span>Track</span></a>
+  <ul class="nav-links">
+    <li><a href="/emergency" class="nav-emergency">🚨 SOS</a></li>
+    <li><a href="/profile">Profile</a></li>
+    <li><button onclick="doLogout()" style="background:none;border:1px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.7);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.84rem;font-family:inherit">Sign Out</button></li>
+  </ul>
+</nav>
+
+<div class="app-layout">
+  <div id="sidebarMount"></div>
+  <div class="page-main">
+
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div><div class="page-title">💊 Medications</div><div class="page-sub">Manage your prescription and OTC medications</div></div>
+      <button class="btn btn-primary btn-lg" onclick="openModal()">+ Add Medication</button>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <input class="search-input" id="searchInput" type="text" placeholder="Search medications…" oninput="renderMeds()"/>
+      <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" onclick="setFilter('morning',this)">🌅 Morning</button>
+      <button class="filter-btn" onclick="setFilter('afternoon',this)">☀️ Afternoon</button>
+      <button class="filter-btn" onclick="setFilter('night',this)">🌙 Night</button>
+      <button class="filter-btn" onclick="setFilter('food',this)">🍽 With Food</button>
+    </div>
+
+    <!-- Medication grid -->
+    <div id="medGrid"><div class="skeleton" style="height:180px;border-radius:14px;"></div></div>
+
+    <!-- Stats -->
+    <div class="card" style="margin-top:20px">
+      <div class="card-title">📊 Medication Overview</div>
+      <div class="metric-grid" style="margin-bottom:0">
+        <div class="metric-card"><div class="metric-val green" id="statTotal">–</div><div class="metric-label">Total Active</div></div>
+        <div class="metric-card"><div class="metric-val teal" id="statWithFood">–</div><div class="metric-label">With Food</div></div>
+        <div class="metric-card"><div class="metric-val amber" id="statExpiring">–</div><div class="metric-label">Ending This Month</div></div>
+        <div class="metric-card"><div class="metric-val" id="statLogs">–</div><div class="metric-label">Doses Logged Today</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Add Medication Modal -->
+<div class="modal-overlay" id="medModal">
+  <div class="modal">
+    <div class="modal-title">Add Medication</div>
+    <div class="modal-sub">Enter your medication details below</div>
+
+    <div class="form-row">
+      <div class="form-group" id="fg-mname"><label>Medication Name *</label><input id="mName" type="text" placeholder="e.g. Metformin"/><div class="form-error">Required</div></div>
+      <div class="form-group" id="fg-mdosage"><label>Dosage *</label><input id="mDosage" type="text" placeholder="e.g. 500mg"/><div class="form-error">Required</div></div>
+    </div>
+
+    <div class="form-group"><label>Frequency</label></div>
+    <div class="freq-opts">
+      <div class="freq-opt selected" onclick="selectFreq(this,'Once daily')"><div class="freq-icon">1️⃣</div><div class="freq-label">Once daily</div></div>
+      <div class="freq-opt" onclick="selectFreq(this,'Twice daily')"><div class="freq-icon">2️⃣</div><div class="freq-label">Twice daily</div></div>
+      <div class="freq-opt" onclick="selectFreq(this,'Three times daily')"><div class="freq-icon">3️⃣</div><div class="freq-label">Three times daily</div></div>
+      <div class="freq-opt" onclick="selectFreq(this,'Weekly')"><div class="freq-icon">📆</div><div class="freq-label">Weekly</div></div>
+    </div>
+
+    <div class="form-group" id="fg-mtime"><label>Time(s) *</label><input id="mTime" type="text" placeholder="e.g. 8:00 AM · 8:00 PM"/><div class="form-error">Required</div></div>
+
+    <div class="with-food-toggle" id="foodToggle" onclick="toggleFood()">
+      <span style="font-size:1.2rem">🍽</span>
+      <div style="flex:1"><div style="font-weight:600;font-size:0.88rem">Take with food</div><div style="font-size:0.78rem;color:var(--text-muted)">Medication should be taken with a meal</div></div>
+      <label class="toggle"><input type="checkbox" id="mWithFood"/><div class="toggle-track"></div></label>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group" id="fg-mstart"><label>Start Date *</label><input id="mStart" type="date"/><div class="form-error">Required</div></div>
+      <div class="form-group"><label>End Date <small style="color:var(--text-muted)">(optional)</small></label><input id="mEnd" type="date"/></div>
+    </div>
+
+    <div class="form-group"><label>Notes</label><textarea id="mNotes" rows="2" placeholder="Any additional instructions…" style="resize:vertical"></textarea></div>
+
+    <div class="toast" id="medToast"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="saveMedBtn" onclick="saveMed()">Add Medication</button>
+    </div>
+  </div>
+</div>
+
+<script src="_nav.js"></script>
+<script>
+let meds=[];
+let activeFilter='all';
+let selectedFreq='Once daily';
+let withFood=false;
+
+async function init(){
+  document.getElementById('sidebarMount').outerHTML=renderSidebar('/medications');
+  try{
+    const r=await fetch('/api/me',{credentials:'include'});
+    if(r.status===401){window.location.href='/login';return;}
+  }catch(e){window.location.href='/login';return;}
+  await loadMeds();
+  document.getElementById('mStart').value=new Date().toISOString().split('T')[0];
+}
+
+async function loadMeds(){
+  try{
+    const r=await fetch('/api/medications',{credentials:'include'});
+    meds=await r.json();
+    renderMeds();
+    updateStats();
+  }catch(e){document.getElementById('medGrid').innerHTML='<p style="color:var(--text-muted);padding:20px">Backend not connected.</p>';}
+}
+
+function setFilter(f,btn){
+  activeFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMeds();
+}
+
+function renderMeds(){
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  let filtered=meds.filter(m=>{
+    if(q&&!m.name.toLowerCase().includes(q)&&!m.dosage.toLowerCase().includes(q))return false;
+    if(activeFilter==='food')return m.with_food;
+    if(activeFilter==='morning')return m.time_of_day.toLowerCase().includes('am')||m.time_of_day.includes('8:')||m.time_of_day.includes('9:');
+    if(activeFilter==='afternoon')return m.time_of_day.includes('PM')&&(m.time_of_day.includes('12')||m.time_of_day.includes('1:')||m.time_of_day.includes('2:')||m.time_of_day.includes('3:'));
+    if(activeFilter==='night')return m.time_of_day.toLowerCase().includes('pm')&&(m.time_of_day.includes('8:')||m.time_of_day.includes('9:')||m.time_of_day.includes('10:'));
+    return true;
+  });
+  if(!filtered.length){
+    document.getElementById('medGrid').innerHTML=`<div class="empty-state"><div class="empty-icon">💊</div><h3>No medications found</h3><p>${meds.length?'Try a different filter.':'Add your first medication to get started.'}</p><button class="btn btn-primary" onclick="openModal()">+ Add Medication</button></div>`;
+    return;
+  }
+  document.getElementById('medGrid').innerHTML=`<div class="med-grid">${filtered.map(m=>medCard(m)).join('')}</div>`;
+}
+
+function medCard(m){
+  const endSoon=m.end_date&&new Date(m.end_date)-new Date()<7*24*3600*1000&&new Date(m.end_date)>new Date();
+  return `
+  <div class="med-card">
+    <div class="med-card-top">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="med-card-name">${m.name}</div>
+          <div class="med-card-dosage">${m.dosage} · ${m.frequency}</div>
+        </div>
+        <span class="badge ${endSoon?'badge-amber':'badge-green'}">${endSoon?'Ending soon':'Active'}</span>
+      </div>
+    </div>
+    <div class="med-card-body">
+      <div class="med-info-item"><label>Time(s)</label><span>${m.time_of_day}</span></div>
+      <div class="med-info-item"><label>With Food</label><span>${m.with_food?'✓ Yes':'No'}</span></div>
+      <div class="med-info-item"><label>Start Date</label><span>${new Date(m.start_date).toLocaleDateString('en-IN')}</span></div>
+      <div class="med-info-item"><label>End Date</label><span>${m.end_date?new Date(m.end_date).toLocaleDateString('en-IN'):'Ongoing'}</span></div>
+      ${m.notes?`<div class="med-info-item" style="grid-column:span 2"><label>Notes</label><span>${m.notes}</span></div>`:''}
+    </div>
+    <div class="med-card-footer">
+      <button class="take-btn" onclick="logMed(${m.id},this)" style="padding:6px 14px;font-size:0.8rem">✓ Mark Taken</button>
+      <div style="flex:1"></div>
+      <button class="btn-icon danger" onclick="removeMed(${m.id})" title="Remove medication">🗑</button>
+    </div>
+  </div>`;
+}
+
+function updateStats(){
+  document.getElementById('statTotal').textContent=meds.length;
+  document.getElementById('statWithFood').textContent=meds.filter(m=>m.with_food).length;
+  const now=new Date();
+  document.getElementById('statExpiring').textContent=meds.filter(m=>{
+    if(!m.end_date)return false;
+    const d=new Date(m.end_date);
+    return d>=now&&d<=new Date(now.getFullYear(),now.getMonth()+1,now.getDate());
+  }).length;
+  document.getElementById('statLogs').textContent='–';
+}
+
+function openModal(){document.getElementById('medModal').classList.add('open');document.getElementById('mName').focus();}
+function closeModal(){document.getElementById('medModal').classList.remove('open');}
+document.getElementById('medModal').addEventListener('click',e=>{if(e.target===document.getElementById('medModal'))closeModal();});
+
+function selectFreq(el,val){
+  document.querySelectorAll('.freq-opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');selectedFreq=val;
+}
+function toggleFood(){
+  withFood=!withFood;
+  document.getElementById('mWithFood').checked=withFood;
+  document.getElementById('foodToggle').classList.toggle('active',withFood);
+}
+
+async function saveMed(){
+  const name=document.getElementById('mName').value.trim();
+  const dosage=document.getElementById('mDosage').value.trim();
+  const time_of_day=document.getElementById('mTime').value.trim();
+  const start_date=document.getElementById('mStart').value;
+  const toast=document.getElementById('medToast');
+  toast.className='toast';
+  let valid=true;
+  [{id:'fg-mname',val:name},{id:'fg-mdosage',val:dosage},{id:'fg-mtime',val:time_of_day},{id:'fg-mstart',val:start_date}].forEach(f=>{
+    document.getElementById(f.id).classList.remove('error');
+    if(!f.val){document.getElementById(f.id).classList.add('error');valid=false;}
+  });
+  if(!valid)return;
+  const btn=document.getElementById('saveMedBtn');btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const r=await fetch('/api/medications',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',
+      body:JSON.stringify({name,dosage,frequency:selectedFreq,time_of_day,with_food:withFood,start_date,end_date:document.getElementById('mEnd').value||null,notes:document.getElementById('mNotes').value.trim()||null})});
+    const d=await r.json();
+    if(r.ok){
+      toast.textContent='✅ Medication added!';toast.className='toast success';
+      setTimeout(()=>{closeModal();loadMeds();},900);
+    }else{toast.textContent='❌ '+d.error;toast.className='toast error';}
+  }catch(e){toast.textContent='❌ Backend not connected.';toast.className='toast error';}
+  btn.disabled=false;btn.textContent='Add Medication';
+}
+
+async function logMed(id,btn){
+  try{
+    await fetch(`/api/medications/${id}/log`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'taken'}),credentials:'include'});
+    btn.textContent='✓ Taken';btn.style.background='var(--green)';btn.disabled=true;
+  }catch(e){alert('Backend not connected.');}
+}
+
+async function removeMed(id){
+  if(!confirm('Remove this medication from your list?'))return;
+  try{
+    await fetch(`/api/medications/${id}`,{method:'DELETE',credentials:'include'});
+    await loadMeds();
+  }catch(e){alert('Backend not connected.');}
+}
+
+init();
+</script>
+</body>
+</html>
